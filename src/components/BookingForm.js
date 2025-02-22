@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { ChevronRight } from 'lucide-react';
 
 const BookingForm = ({ onClose, selectedDate, selectedTime }) => {
