@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Lock } from 'lucide-react';
 
-const AccessPage = ({ onAuthenticate }) => {
+const AccessPage = ({ onAuthenticate, settings }) => {
   const [accessCode, setAccessCode] = useState('');
-  const [title, setTitle] = useState('חדר דיירים - בניין 5');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,7 +16,7 @@ const AccessPage = ({ onAuthenticate }) => {
       console.log('Checking access code:', accessCode);
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (accessCode === '1234') {
+      if (accessCode === settings.accessCode) {
         console.log('Access granted');
         onAuthenticate && onAuthenticate();
       } else {
@@ -36,7 +35,7 @@ const AccessPage = ({ onAuthenticate }) => {
         <CardHeader className="bg-white rounded-t-lg">
           <CardTitle className="flex items-center gap-2 text-xl font-medium text-amber-900">
             <Lock className="h-6 w-6" />
-            <span>{title}</span>
+            <span>{settings.title}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
