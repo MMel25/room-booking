@@ -2,30 +2,12 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { ChevronRight, ChevronLeft, Calendar } from 'lucide-react';
 
-const CalendarView = () => {
+const CalendarView = ({ onTimeSelect }) => {
   const [viewMode, setViewMode] = useState('week');
   const [currentDate] = useState(new Date('2025-02-22'));
 
-  const bookings = [
-    { 
-      date: '2025-02-22', 
-      startTime: '09',
-      endTime: '13', 
-      apartment: '15'
-    },
-    {
-      date: '2025-02-22',
-      startTime: '15',
-      endTime: '18', 
-      apartment: '7'
-    },
-    {
-      date: '2025-02-23',
-      startTime: '10',
-      endTime: '14', 
-      apartment: '23'
-    }
-  ];
+  // נקה את נתוני הדמו - יוחלף בהמשך בנתונים מ-Firebase
+  const bookings = [];
 
   const hours = Array.from({ length: 24 }, (_, i) => 
     `${String(i).padStart(2, '0')}`
@@ -90,6 +72,7 @@ const CalendarView = () => {
                       className={`p-2 min-h-[50px] cursor-pointer ${
                         isBooked ? 'bg-amber-50' : 'hover:bg-amber-50/30'
                       }`}
+                      onClick={() => !isBooked && onTimeSelect(formatDate(day), `${hour}:00`)}
                     >
                       <div className="text-sm text-amber-900">{hour}:00</div>
                     </div>
@@ -180,6 +163,7 @@ const CalendarView = () => {
             className={`flex border-b p-3 cursor-pointer transition-all ${
               isBooked ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-amber-50/30'
             }`}
+            onClick={() => !isBooked && onTimeSelect(formatDate(currentDate), `${hour}:00`)}
           >
             <div className="w-20 text-right font-medium text-amber-900">
               {hour}:00
