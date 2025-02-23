@@ -27,28 +27,12 @@ const CalendarView = ({ onTimeSelect, settings }) => {
     `${String(i).padStart(2, '0')}`
   );
 
-  const getDayName = (date) => {
-    const dayName = new Intl.DateTimeFormat('he-IL', { weekday: 'short' }).format(date);
-    return date.getDay() === 6 ? `יום ${dayName}` : dayName;
-  };
-
   const formatDate = (date) => {
     return date.toISOString().split('T')[0];
   };
 
   const isTimeBooked = (date, hour) => {
     return bookings.some(booking => {
-      const startHour = parseInt(booking.startTime);
-      const endHour = parseInt(booking.endTime);
-      const currentHour = parseInt(hour);
-      return booking.date === formatDate(date) && 
-             currentHour >= startHour && 
-             currentHour < endHour;
-    });
-  };
-
-  const getBookingForTime = (date, hour) => {
-    return bookings.find(booking => {
       const startHour = parseInt(booking.startTime);
       const endHour = parseInt(booking.endTime);
       const currentHour = parseInt(hour);
@@ -66,16 +50,50 @@ const CalendarView = ({ onTimeSelect, settings }) => {
     });
 
     return (
-      {/* ... */}
+      <div className="grid grid-cols-8 gap-2">
+        {/* שעות בצד */}
+        <div className="space-y-2">
+          <div className="h-8"></div> {/* ריווח לכותרות */}
+          {hours.map(hour => (
+            <div key={hour} className="h-8 flex items-center justify-center text-sm text-amber-900">
+              {hour}:00
+            </div>
+          ))}
+        </div>
+
+        {/* ימים */}
+        {weekDays.map(day => (
+          <div key={day.toISOString()} className="space-y-2">
+            <div className="h-8 text-center font-medium text-amber-900">
+              {new Intl.DateTimeFormat('he-IL', { weekday: 'short' }).format(day)}
+            </div>
+            {hours.map(hour => {
+              const isBooked = isTimeBooked(day, hour);
+              return (
+                <button
+                  key={`${day.toISOString()}-${hour}`}
+                  className={`w-full h-8 rounded border ${
+                    isBooked 
+                      ? 'bg-amber-200 cursor-not-allowed' 
+                      : 'hover:bg-amber-50 border-amber-200'
+                  }`}
+                  onClick={() => !isBooked && onTimeSelect(formatDate(day), hour)}
+                  disabled={isBooked}
+                ></button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     );
   };
 
-  const MonthlyView = () => {
-    {/* ... */}
-  };
+  const MonthlyView = () => (
+    <div className="text-center p-4 text-amber-900">תצוגת חודש - בפיתוח</div>
+  );
 
   const DailyView = () => (
-    {/* ... */}
+    <div className="text-center p-4 text-amber-900">תצוגת יום - בפיתוח</div>
   );
 
   const getView = () => {
@@ -122,9 +140,6 @@ const CalendarView = ({ onTimeSelect, settings }) => {
               <Calendar className="h-6 w-6" />
               <span>{settings.title}</span>
             </CardTitle>
-            <div className="flex gap-2">
-              {/* ... */}
-            </div>
           </div>
 
           <div className="flex items-center justify-between">
