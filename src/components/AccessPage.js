@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Lock } from 'lucide-react';
 
-const AccessPage = () => {
+const AccessPage = ({ onAuthenticate }) => {
   const [accessCode, setAccessCode] = useState('');
   const [title, setTitle] = useState('חדר דיירים - בניין 5');
   const [error, setError] = useState('');
@@ -12,14 +12,14 @@ const AccessPage = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
     try {
-      // כאן יתווסף הקוד לבדיקה מול Firebase
       console.log('Checking access code:', accessCode);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // סימולציה של בדיקה
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (accessCode === '1234') { // זה יוחלף בבדיקה אמיתית מול Firebase
-        // מעבר למסך הבא
+      if (accessCode === '1234') {
         console.log('Access granted');
+        onAuthenticate && onAuthenticate();
       } else {
         setError('קוד גישה שגוי');
       }
