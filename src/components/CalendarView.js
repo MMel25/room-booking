@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { ChevronRight, ChevronLeft, Calendar, Plus } from 'lucide-react';
 
 const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings }) => {
   const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
+  const [touchStart, setTouchStart] = useState(null);
 
   const hours = Array.from({ length: 24 }, (_, i) => 
     `${String(i).padStart(2, '0')}`
@@ -43,31 +42,36 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     });
   };
 
-  const handleTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (viewMode === 'month') {
-      if (touchStart - touchEnd > 75) {
-        // החלק ימינה - חודש קודם
-        const newDate = new Date(currentDate);
-        newDate.setMonth(newDate.getMonth() + 1);
-        setCurrentDate(newDate);
-      }
-
-      if (touchStart - touchEnd < -75) {
-        // החלק שמאלה - חודש אחורה
-        const newDate = new Date(currentDate);
-        newDate.setMonth(newDate.getMonth() - 1);
-        setCurrentDate(newDate);
-      }
+  const handleTouchStart = useCallback((e) => {
+    // וודא שזה רק מגע יחיד
+    if (e.touches.length === 1) {
+      setTouchStart(e.touches[0].clientX);
     }
-  };
+  }, []);
+
+  const handleTouchEnd = useCallback((e) => {
+    // וודא שזה רק מגע יחיד וקיים נקודת התחלה
+    if (touchStart !== null && e.changedTouches.length === 1) {
+      const touchEnd = e.changedTouches[0].clientX;
+      const touchDiff = touchStart - touchEnd;
+
+      // בדוק אם ההחלקה מספיק גדולה
+      if (Math.abs(touchDiff) > 50) {
+        const newDate = new Date(currentDate);
+        if (touchDiff > 0) {
+          // החלקה ימינה - חודש קודם
+          newDate.setMonth(newDate.getMonth() + 1);
+        } else {
+          // החלקה שמאלה - חודש אחורה
+          newDate.setMonth(newDate.getMonth() - 1);
+        }
+        setCurrentDate(newDate);
+      }
+
+      // איפוס נקודת ההתחלה
+      setTouchStart(null);
+    }
+  }, [touchStart, currentDate]);
 
   const MonthlyView = () => {
     const daysInMonth = () => {
@@ -98,9 +102,14 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     return (
       <div 
         className="grid grid-cols-7 gap-1 touch-pan-y"
+        // הוספת אירועי מגע עם מניעת גרירה אופקית
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        style={{ 
+          touchAction: 'pan-y', 
+          userSelect: 'none',
+          WebkitUserSelect: 'none'
+        }}
       >
         {['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map(day => (
           <div key={day} className="p-2 text-center font-bold text-amber-900">
@@ -140,6 +149,7 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     );
   };
 
+  // השאר את שאר הקוד כפי שהיה
   const DailyView = () => (
     <div className="h-[600px] overflow-y-auto bg-white rounded-lg" dir="rtl">
       {hours.map(hour => {
