@@ -1,31 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { ChevronRight, ChevronLeft, Calendar } from 'lucide-react';
-import { ref, onValue } from 'firebase/database';
-import { db } from '../firebase';
 
-const CalendarView = ({ onTimeSelect, settings }) => {
+const CalendarView = ({ bookings = [], onTimeSelect, settings }) => {
   const [viewMode, setViewMode] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [bookings, setBookings] = useState([]);
-
-  useEffect(() => {
-    const bookingsRef = ref(db, 'bookings');
-    onValue(bookingsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const fetchedBookings = Object.entries(data).map(([id, booking]) => ({
-          id,
-          ...booking,
-        }));
-        setBookings(fetchedBookings);
-      }
-    });
-  }, []);
 
   const hours = Array.from({ length: 24 }, (_, i) => 
     `${String(i).padStart(2, '0')}`
   );
+
+  const getDayName = (date) => {
+    const dayName = new Intl.DateTimeFormat('he-IL', { weekday: 'short' }).format(date);
+    return date.getDay() === 6 ? `יום ${dayName}` : dayName;
+  };
 
   const formatDate = (date) => {
     return date.toISOString().split('T')[0];
@@ -33,6 +21,17 @@ const CalendarView = ({ onTimeSelect, settings }) => {
 
   const isTimeBooked = (date, hour) => {
     return bookings.some(booking => {
+      const startHour = parseInt(booking.startTime);
+      const endHour = parseInt(booking.endTime);
+      const currentHour = parseInt(hour);
+      return booking.date === formatDate(date) && 
+             currentHour >= startHour && 
+             currentHour < endHour;
+    });
+  };
+
+  const getBookingForTime = (date, hour) => {
+    return bookings.find(booking => {
       const startHour = parseInt(booking.startTime);
       const endHour = parseInt(booking.endTime);
       const currentHour = parseInt(hour);
@@ -50,50 +49,130 @@ const CalendarView = ({ onTimeSelect, settings }) => {
     });
 
     return (
-      <div className="grid grid-cols-8 gap-2">
-        {/* שעות בצד */}
-        <div className="space-y-2">
-          <div className="h-8"></div> {/* ריווח לכותרות */}
-          {hours.map(hour => (
-            <div key={hour} className="h-8 flex items-center justify-center text-sm text-amber-900">
-              {hour}:00
+      <div className="overflow-x-auto">
+        <div className="grid grid-cols-7 min-w-full">
+          {weekDays.map((day, dayIndex) => (
+            <div key={dayIndex} className="flex-1 min-w-[180px] border-x">
+              <div className="sticky top-0 bg-amber-50 p-2 text-center border-b">
+                <div className="font-bold text-amber-900">{getDayName(day)}</div>
+                <div className="text-sm text-amber-700">
+                  {day.getDate()}/{day.getMonth() + 1}
+                </div>
+              </div>
+              <div className="divide-y">
+                {hours.map(hour => {
+                  const isBooked = isTimeBooked(day, hour);
+                  
+                  return (
+                    <div 
+                      key={hour}
+                      className={`p-2 min-h-[50px] cursor-pointer ${
+                        isBooked ? 'bg-amber-50' : 'hover:bg-amber-50/30'
+                      }`}
+                      onClick={() => !isBooked && onTimeSelect(formatDate(day), `${hour}:00`)}
+                    >
+                      <div className="text-sm text-amber-900">{hour}:00</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>
-
-        {/* ימים */}
-        {weekDays.map(day => (
-          <div key={day.toISOString()} className="space-y-2">
-            <div className="h-8 text-center font-medium text-amber-900">
-              {new Intl.DateTimeFormat('he-IL', { weekday: 'short' }).format(day)}
-            </div>
-            {hours.map(hour => {
-              const isBooked = isTimeBooked(day, hour);
-              return (
-                <button
-                  key={`${day.toISOString()}-${hour}`}
-                  className={`w-full h-8 rounded border ${
-                    isBooked 
-                      ? 'bg-amber-200 cursor-not-allowed' 
-                      : 'hover:bg-amber-50 border-amber-200'
-                  }`}
-                  onClick={() => !isBooked && onTimeSelect(formatDate(day), hour)}
-                  disabled={isBooked}
-                ></button>
-              );
-            })}
-          </div>
-        ))}
       </div>
     );
   };
 
-  const MonthlyView = () => (
-    <div className="text-center p-4 text-amber-900">תצוגת חודש - בפיתוח</div>
-  );
+  const MonthlyView = () => {
+    const daysInMonth = () => {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      
+      const days = [];
+      
+      for (let i = firstDay.getDay() - 1; i >= 0; i--) {
+        const day = new Date(year, month, -i);
+        days.push(day);
+      }
+      
+      for (let i = 1; i <= lastDay.getDate(); i++) {
+        days.push(new Date(year, month, i));
+      }
+      
+      const remainingDays = 42 - days.length;
+      for (let i = 1; i <= remainingDays; i++) {
+        days.push(new Date(year, month + 1, i));
+      }
+      
+      return days;
+    };
+
+    return (
+      <div className="grid grid-cols-7 gap-1">
+        {['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map(day => (
+          <div key={day} className="p-2 text-center font-bold text-amber-900">
+            {day}
+          </div>
+        ))}
+        
+        {daysInMonth().map((day, index) => {
+          const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+          const hasBookings = bookings.some(b => b.date === formatDate(day));
+          
+          return (
+            <div 
+              key={index}
+              className={`
+                p-2 min-h-[100px] border rounded cursor-pointer
+                ${isCurrentMonth ? '' : 'opacity-50'}
+                ${hasBookings ? 'bg-amber-50' : 'hover:bg-amber-50/30'}
+              `}
+              onClick={() => {
+                setViewMode('day');
+                setCurrentDate(day);
+              }}
+            >
+              <div className="font-medium text-amber-900">
+                {day.getDate()}
+              </div>
+              {hasBookings && (
+                <div className="mt-1 text-sm text-amber-800">
+                  יש הזמנות
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const DailyView = () => (
-    <div className="text-center p-4 text-amber-900">תצוגת יום - בפיתוח</div>
+    <div className="h-[600px] overflow-y-auto bg-white rounded-lg" dir="rtl">
+      {hours.map(hour => {
+        const isBooked = isTimeBooked(currentDate, hour);
+        const booking = getBookingForTime(currentDate, hour);
+        
+        return (
+          <div 
+            key={hour}
+            className={`flex border-b p-3 cursor-pointer transition-all ${
+              isBooked ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-amber-50/30'
+            }`}
+            onClick={() => !isBooked && onTimeSelect(formatDate(currentDate), `${hour}:00`)}
+          >
+            <div className="w-20 text-right font-medium text-amber-900">
+              {hour}:00
+            </div>
+            <div className="mr-4 text-amber-900">
+              {isBooked ? `ד.${booking.apartment}` : 'פנוי'}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 
   const getView = () => {
@@ -107,30 +186,6 @@ const CalendarView = ({ onTimeSelect, settings }) => {
     }
   };
 
-  const goToToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  const goToPrevious = () => {
-    if (viewMode === 'month') {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    } else if (viewMode === 'week') {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 7));
-    } else {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1));
-    }
-  };
-
-  const goToNext = () => {
-    if (viewMode === 'month') {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-    } else if (viewMode === 'week') {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 7));
-    } else {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1));
-    }
-  };
-
   return (
     <div className="min-h-screen p-4" style={{ backgroundColor: '#F5F5DC' }} dir="rtl">
       <Card className="max-w-6xl mx-auto shadow-lg">
@@ -140,18 +195,56 @@ const CalendarView = ({ onTimeSelect, settings }) => {
               <Calendar className="h-6 w-6" />
               <span>{settings.title}</span>
             </CardTitle>
+            <div className="flex gap-2">
+              <button 
+                className={`px-4 py-2 rounded transition-colors ${
+                  viewMode === 'month' ? 'bg-amber-100 text-amber-900' : 'bg-gray-100'
+                }`}
+                onClick={() => setViewMode('month')}
+              >
+                חודשי
+              </button>
+              <button 
+                className={`px-4 py-2 rounded transition-colors ${
+                  viewMode === 'week' ? 'bg-amber-100 text-amber-900' : 'bg-gray-100'
+                }`}
+                onClick={() => setViewMode('week')}
+              >
+                שבועי
+              </button>
+              <button 
+                className={`px-4 py-2 rounded transition-colors ${
+                  viewMode === 'day' ? 'bg-amber-100 text-amber-900' : 'bg-gray-100'
+                }`}
+                onClick={() => setViewMode('day')}
+              >
+                יומי
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
-            <button
+            <button 
               className="px-4 py-2 rounded text-white"
               style={{ backgroundColor: '#DEB887' }}
-              onClick={goToToday}
+              onClick={() => setCurrentDate(new Date())}
             >
               היום
             </button>
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-gray-100 rounded-full" onClick={goToPrevious}>
+              <button className="p-2 hover:bg-gray-100 rounded-full"
+                onClick={() => {
+                  const newDate = new Date(currentDate);
+                  if (viewMode === 'day') {
+                    newDate.setDate(newDate.getDate() - 1);
+                  } else if (viewMode === 'week') {
+                    newDate.setDate(newDate.getDate() - 7);
+                  } else if (viewMode === 'month') {
+                    newDate.setMonth(newDate.getMonth() - 1);
+                  }
+                  setCurrentDate(newDate);
+                }}
+              >
                 <ChevronLeft className="h-5 w-5 text-amber-900" />
               </button>
               <span className="font-medium text-amber-900">
@@ -161,7 +254,19 @@ const CalendarView = ({ onTimeSelect, settings }) => {
                   year: 'numeric'
                 }).format(currentDate)}
               </span>
-              <button className="p-2 hover:bg-gray-100 rounded-full" onClick={goToNext}>
+              <button className="p-2 hover:bg-gray-100 rounded-full"
+                onClick={() => {
+                  const newDate = new Date(currentDate);
+                  if (viewMode === 'day') {
+                    newDate.setDate(newDate.getDate() + 1);
+                  } else if (viewMode === 'week') {
+                    newDate.setDate(newDate.getDate() + 7);
+                  } else if (viewMode === 'month') {
+                    newDate.setMonth(newDate.getMonth() + 1);
+                  }
+                  setCurrentDate(newDate);
+                }}
+              >
                 <ChevronRight className="h-5 w-5 text-amber-900" />
               </button>
             </div>
