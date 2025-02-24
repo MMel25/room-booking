@@ -5,7 +5,8 @@ import { ChevronRight, ChevronLeft, Calendar, Plus } from 'lucide-react';
 const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings }) => {
   const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedHour, setSelectedHour] = useState(null);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
 
   const hours = Array.from({ length: 24 }, (_, i) => 
     `${String(i).padStart(2, '0')}`
@@ -42,6 +43,32 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     });
   };
 
+  const handleTouchStart = (e) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (viewMode === 'month') {
+      if (touchStart - touchEnd > 75) {
+        // החלק ימינה - חודש קודם
+        const newDate = new Date(currentDate);
+        newDate.setMonth(newDate.getMonth() + 1);
+        setCurrentDate(newDate);
+      }
+
+      if (touchStart - touchEnd < -75) {
+        // החלק שמאלה - חודש אחורה
+        const newDate = new Date(currentDate);
+        newDate.setMonth(newDate.getMonth() - 1);
+        setCurrentDate(newDate);
+      }
+    }
+  };
+
   const MonthlyView = () => {
     const daysInMonth = () => {
       const year = currentDate.getFullYear();
@@ -69,7 +96,12 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     };
 
     return (
-      <div className="grid grid-cols-7 gap-1">
+      <div 
+        className="grid grid-cols-7 gap-1 touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map(day => (
           <div key={day} className="p-2 text-center font-bold text-amber-900">
             {day}
@@ -159,29 +191,23 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
       <Card className="max-w-6xl mx-auto shadow-lg">
         <CardHeader className="bg-white rounded-t-lg">
           <div className="flex items-center justify-between mb-4">
-            <CardTitle className="flex items-center gap-2 text-xl font-medium" style={{ color: '#DEB887' }}>
+            <CardTitle className="flex items-center gap-2 text-xl font-medium text-amber-900">
               <Calendar className="h-6 w-6" />
               <span>{settings.title}</span>
             </CardTitle>
             <div className="flex gap-2">
               <button 
                 className={`px-4 py-2 rounded transition-colors ${
-                  viewMode === 'month' ? 'text-white' : 'text-amber-900'
+                  viewMode === 'month' ? 'bg-amber-100 text-amber-900' : 'bg-gray-100'
                 }`}
-                style={{ 
-                  backgroundColor: viewMode === 'month' ? '#DEB887' : '#F3E6D0' 
-                }}
                 onClick={() => setViewMode('month')}
               >
                 חודשי
               </button>
               <button 
                 className={`px-4 py-2 rounded transition-colors ${
-                  viewMode === 'day' ? 'text-white' : 'text-amber-900'
+                  viewMode === 'day' ? 'bg-amber-100 text-amber-900' : 'bg-gray-100'
                 }`}
-                style={{ 
-                  backgroundColor: viewMode === 'day' ? '#DEB887' : '#F3E6D0' 
-                }}
                 onClick={() => setViewMode('day')}
               >
                 יומי
