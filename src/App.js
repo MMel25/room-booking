@@ -11,10 +11,10 @@ const App = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [settings, setSettings] = useState({
-    title: 'חדר דיירים - בניין 5',
+    title: 'חדר דיירים בן חור 4',
     maxBookingHours: 12,
-    accessCode: '1234',
-    regulations: 'יש לשמור על ניקיון החדר ולפנות אותו בזמן.'
+    accessCode: '4334',
+    regulations: 'יש החדר מוקצה לשימוש פרטי של דיירי הבניין בלבד. החדר יוקצה לרשותך בשיטת הראשון להזמין ובשעות ההזמנה בלבד. חובה להחזיר את החדר נקי ומסודר, חלונות ותריס יציאה סגורים, מזגן ואורות כבויים, דלת נעולה. בשימוש החדר עבור מעל 10 אנשים, הכניסה/יציאה מהגינה האחורית בלבד! חל איסור מוחלט על הקמת רעש שעלול להפריע למנוחת השכנים, בפרט בשעות הצהריים או הערב המאוחרות/הלילה. חובה לשמור על הציוד בחדר, נזקים יהיו באחריות המזמינים בלבד.'
   });
   const [bookings, setBookings] = useState([]);
 
