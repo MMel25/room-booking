@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { ChevronRight } from 'lucide-react';
 
-const BookingForm = ({ onClose, selectedDate, selectedTime }) => {
+const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }) => {
   const [formData, setFormData] = useState({
+    date: selectedDate,
+    startTime: selectedTime ? selectedTime.split(':')[0] : '',
+    endTime: '',
     apartment: '',
     name: '',
     phone: '',
@@ -15,8 +18,29 @@ const BookingForm = ({ onClose, selectedDate, selectedTime }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // כאן יתווסף הקוד לשמירת ההזמנה
-    console.log('Form submitted:', formData);
+    
+    // בדיקה שכל השדות מלאים
+    if (!formData.apartment || !formData.name || !formData.phone || !formData.purpose || !formData.acceptTerms || !formData.endTime) {
+      alert('נא למלא את כל השדות');
+      return;
+    }
+    
+    // בדיקה שמשך ההזמנה תקין
+    const startHour = parseInt(formData.startTime);
+    const endHour = parseInt(formData.endTime);
+    if (endHour <= startHour) {
+      alert('שעת הסיום חייבת להיות מאוחרת משעת ההתחלה');
+      return;
+    }
+    
+    const duration = endHour - startHour;
+    if (duration > settings.maxBookingHours) {
+      alert(`לא ניתן להזמין ליותר מ-${settings.maxBookingHours} שעות`);
+      return;
+    }
+    
+    // שליחת הנתונים לפונקציה החיצונית
+    onSubmit(formData);
   };
 
   return (
@@ -40,6 +64,28 @@ const BookingForm = ({ onClose, selectedDate, selectedTime }) => {
         </CardHeader>
         <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-amber-900 mb-1">
+                שעת סיום
+                <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.endTime}
+                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                required
+              >
+                <option value="">בחר שעת סיום</option>
+                {Array.from({ length: 24 - parseInt(formData.startTime || 0) }, (_, i) => {
+                  const hour = parseInt(formData.startTime || 0) + i + 1;
+                  if (hour < 24) {
+                    return <option key={hour} value={hour}>{hour}:00</option>;
+                  }
+                  return null;
+                }).filter(Boolean)}
+              </select>
+            </div>
+
             <div>
               <label className="block text-amber-900 mb-1">
                 מספר דירה
@@ -106,8 +152,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime }) => {
               <div className="text-sm text-amber-800 mb-4">
                 תקנון השימוש בחדר:
                 <div className="mt-2 p-3 bg-amber-50 rounded text-amber-700">
-                  יש לשמור על ניקיון החדר...
-                  {/* כאן יוצג התקנון המלא */}
+                  {settings.regulations}
                 </div>
               </div>
               
