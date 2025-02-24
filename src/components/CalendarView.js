@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { ChevronRight, ChevronLeft, Calendar, Plus } from 'lucide-react';
 
 const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings }) => {
-  const [viewMode, setViewMode] = useState('month'); // שינוי לתצוגה חודשית כברירת מחדל
+  const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedHour, setSelectedHour] = useState(null);
 
@@ -41,8 +41,6 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
              currentHour < endHour;
     });
   };
-
-  // הסרת WeeklyView לגמרי
 
   const MonthlyView = () => {
     const daysInMonth = () => {
@@ -134,7 +132,7 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
               <button 
                 className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-amber-100 hover:bg-amber-200 transition-colors"
                 onClick={(e) => {
-                  e.stopPropagation(); // מונע הפעלת האירוע של הורה
+                  e.stopPropagation();
                   onQuickBooking(formatDate(currentDate), `${hour}:00`);
                 }}
               >
@@ -161,23 +159,29 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
       <Card className="max-w-6xl mx-auto shadow-lg">
         <CardHeader className="bg-white rounded-t-lg">
           <div className="flex items-center justify-between mb-4">
-            <CardTitle className="flex items-center gap-2 text-xl font-medium text-amber-900">
+            <CardTitle className="flex items-center gap-2 text-xl font-medium" style={{ color: '#DEB887' }}>
               <Calendar className="h-6 w-6" />
               <span>{settings.title}</span>
             </CardTitle>
             <div className="flex gap-2">
               <button 
                 className={`px-4 py-2 rounded transition-colors ${
-                  viewMode === 'month' ? 'bg-amber-100 text-amber-900' : 'bg-gray-100'
+                  viewMode === 'month' ? 'text-white' : 'text-amber-900'
                 }`}
+                style={{ 
+                  backgroundColor: viewMode === 'month' ? '#DEB887' : '#F3E6D0' 
+                }}
                 onClick={() => setViewMode('month')}
               >
                 חודשי
               </button>
               <button 
                 className={`px-4 py-2 rounded transition-colors ${
-                  viewMode === 'day' ? 'bg-amber-100 text-amber-900' : 'bg-gray-100'
+                  viewMode === 'day' ? 'text-white' : 'text-amber-900'
                 }`}
+                style={{ 
+                  backgroundColor: viewMode === 'day' ? '#DEB887' : '#F3E6D0' 
+                }}
                 onClick={() => setViewMode('day')}
               >
                 יומי
