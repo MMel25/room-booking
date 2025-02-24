@@ -48,7 +48,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
       <Card className="w-full max-w-md my-8">
         <CardHeader className="bg-white rounded-t-lg border-b">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-medium text-amber-900">
+            <CardTitle className="text-xl font-medium" style={{ color: '#DEB887' }}>
               הזמנת חדר
             </CardTitle>
             <button 
@@ -65,7 +65,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
         <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-amber-900 mb-1">
+              <label className="block mb-1" style={{ color: '#DEB887' }}>
                 שעת סיום
                 <span className="text-red-500">*</span>
               </label>
@@ -87,7 +87,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             </div>
 
             <div>
-              <label className="block text-amber-900 mb-1">
+              <label className="block mb-1" style={{ color: '#DEB887' }}>
                 מספר דירה
                 <span className="text-red-500">*</span>
               </label>
@@ -105,7 +105,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             </div>
 
             <div>
-              <label className="block text-amber-900 mb-1">
+              <label className="block mb-1" style={{ color: '#DEB887' }}>
                 שם מלא
                 <span className="text-red-500">*</span>
               </label>
@@ -119,7 +119,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             </div>
 
             <div>
-              <label className="block text-amber-900 mb-1">
+              <label className="block mb-1" style={{ color: '#DEB887' }}>
                 טלפון נייד
                 <span className="text-red-500">*</span>
               </label>
@@ -135,7 +135,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             </div>
 
             <div>
-              <label className="block text-amber-900 mb-1">
+              <label className="block mb-1" style={{ color: '#DEB887' }}>
                 מטרת השימוש בחדר
                 <span className="text-red-500">*</span>
               </label>
@@ -151,12 +151,12 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             <div className="pt-4 border-t">
               <div className="text-sm text-amber-800 mb-4">
                 תקנון השימוש בחדר:
-                <div className="mt-2 p-3 bg-amber-50 rounded text-amber-700">
+                <div className="mt-2 p-3 bg-amber-50 rounded text-black">
                   {settings.regulations}
                 </div>
               </div>
               
-              <label className="flex items-start gap-2 text-amber-900">
+              <label className="flex items-start gap-2" style={{ color: '#DEB887' }}>
                 <input
                   type="checkbox"
                   checked={formData.acceptTerms}
