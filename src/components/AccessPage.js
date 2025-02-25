@@ -1,38 +1,52 @@
 import React, { useState } from 'react';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock, Loader2, Settings } from 'lucide-react';
 
 const AccessPage = ({ onAuthenticate, settings }) => {
   const [accessCode, setAccessCode] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+
     try {
-      // המרה למספר לצורך השוואה נכונה
-      const numericCode = Number(accessCode);
-      const settingsCode = Number(settings.accessCode);
+      console.log('Checking access code:', accessCode);
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log('Debug info:', {
-        enteredCode: numericCode,
-        expectedCode: settingsCode,
-        rawAccessCode: accessCode,
-        rawSettingsCode: settings.accessCode,
-        settings: settings
+      // המרה למספרים לצורך השוואה
+      const numericCode = Number(accessCode);
+      const settingsAccessCode = Number(settings.accessCode);
+      const settingsAdminCode = Number(settings.adminCode);
+      
+      console.log('Debug:', {
+        numericCode,
+        settingsAccessCode,
+        settingsAdminCode,
+        isAdminMode
       });
 
-      if (numericCode === settingsCode) {
-        console.log('Access granted');
-        onAuthenticate && onAuthenticate();
+      if (isAdminMode) {
+        // בדיקת קוד מנהל
+        if (numericCode === settingsAdminCode) {
+          console.log('Admin access granted');
+          onAuthenticate(true); // true מציין שזו כניסת מנהל
+        } else {
+          setError('קוד מנהל שגוי');
+        }
       } else {
-        console.log('Access denied');
-        setError('קוד גישה שגוי');
+        // בדיקת קוד רגיל
+        if (numericCode === settingsAccessCode) {
+          console.log('User access granted');
+          onAuthenticate(false); // false מציין שזו כניסה רגילה
+        } else {
+          setError('קוד גישה שגוי');
+        }
       }
     } catch (error) {
-      console.error('Error in authentication:', error);
+      console.error('Error:', error);
       setError('אירעה שגיאה, נסה שוב מאוחר יותר');
     } finally {
       setIsLoading(false);
@@ -58,10 +72,17 @@ const AccessPage = ({ onAuthenticate, settings }) => {
       <div className="w-full max-w-md relative z-10 mb-8 sm:mb-0">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-white bg-opacity-90 mb-4 shadow-sm">
-            <Lock className="h-8 w-8 text-amber-900" />
+            {isAdminMode ? (
+              <Settings className="h-8 w-8 text-amber-900" />
+            ) : (
+              <Lock className="h-8 w-8 text-amber-900" />
+            )}
           </div>
-          <h1 className="text-2xl font-bold text-white">{settings.title}</h1>
+          <h1 className="text-2xl font-bold text-white">
+            {isAdminMode ? 'כניסת מנהל' : settings.title}
+          </h1>
         </div>
+        
         <form onSubmit={handleSubmit} className="space-y-5 bg-white p-6 rounded-lg shadow-md border border-amber-100">
           <div>
             <input
@@ -73,7 +94,7 @@ const AccessPage = ({ onAuthenticate, settings }) => {
                 error ? 'border-red-400' : 'border-amber-200'
               }`}
               style={{ backgroundColor: '#FFFCF9' }}
-              placeholder="הכנס קוד גישה"
+              placeholder={isAdminMode ? "הכנס קוד מנהל" : "הכנס קוד גישה"}
               dir="rtl"
             />
             {error && (
@@ -83,6 +104,7 @@ const AccessPage = ({ onAuthenticate, settings }) => {
               </p>
             )}
           </div>
+
           <button
             type="submit"
             disabled={isLoading}
@@ -97,8 +119,20 @@ const AccessPage = ({ onAuthenticate, settings }) => {
                 <span>בודק...</span>
               </>
             ) : (
-              <span>כניסה</span>
+              <span>{isAdminMode ? 'כניסה לממשק ניהול' : 'כניסה'}</span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsAdminMode(!isAdminMode);
+              setAccessCode('');
+              setError('');
+            }}
+            className="w-full text-amber-700 text-sm hover:text-amber-800 transition-colors p-2"
+          >
+            {isAdminMode ? 'חזרה לכניסה רגילה' : 'כניסת מנהל'}
           </button>
         </form>
       </div>
