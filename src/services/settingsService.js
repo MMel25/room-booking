@@ -1,174 +1,187 @@
-// settingsService.js
+// src/services/settingsService.js
+import { 
+  ref, 
+  get, 
+  set, 
+  update,
+  push,
+  remove
+} from "firebase/database";
+import { db } from './firebase';
 
 class SettingsService {
   constructor() {
-    // אתחול הגדרות ברירת מחדל אם לא קיימות
-    this.initializeDefaultSettings();
+    this.settingsRef = ref(db, 'system/settings');
+    this.apartmentsRef = ref(db, 'apartments');
+  }
+
+  // שליפת הגדרות מערכת
+  async getSettings() {
+    try {
+      const snapshot = await get(this.settingsRef);
+      
+      if (snapshot.exists()) {
+        return {
+          success: true,
+          settings: snapshot.val()
+        };
+      } else {
+        // יצירת הגדרות ברירת מחדל אם לא קיימות
+        await this.initializeDefaultSettings();
+        
+        return {
+          success: true,
+          settings: this.getDefaultSettings()
+        };
+      }
+    } catch (error) {
+      console.error('שגיאה בשליפת הגדרות:', error);
+      return {
+        success: false,
+        message: 'שגיאה בשליפת הגדרות'
+      };
+    }
+  }
+
+  // הגדרות ברירת מחדל
+  getDefaultSettings() {
+    return {
+      systemSettings: {
+        automaticConfirmation: false,
+        maxBookingDuration: 7,
+        notificationEmail: '',
+        cancellationPolicy: {
+          freeCancellationDays: 3,
+          cancellationFee: 50
+        }
+      }
+    };
   }
 
   // אתחול הגדרות ברירת מחדל
-  initializeDefaultSettings() {
-    const defaultSettings = {
-      apartments: [
-        { 
-          id: 1, 
-          name: 'דירה 1', 
-          maxGuests: 4, 
-          pricePerNight: 350 
-        },
-        { 
-          id: 2, 
-          name: 'דירה 2', 
-          maxGuests: 6, 
-          pricePerNight: 450 
-        }
-      ],
-      systemSettings: {
-        adminPassword: 'admin123', // סיסמת מנהל ראשונית
-        automaticConfirmation: false,
-        maxBookingDuration: 7, // מספר ימים מקסימלי להזמנה
-        notificationEmail: '', // אימייל לקבלת התראות
-      },
-      bookingRules: {
-        advanceBookingDays: 30, // מספר ימים מראש שניתן להזמין
-        cancellationPolicy: {
-          freeCancellationDays: 3, // ימים שניתן לבטל ללא עלות
-          cancellationFee: 50 // עלות ביטול לאחר התקופה הנ"ל
-        }
+  async initializeDefaultSettings() {
+    try {
+      await set(this.settingsRef, this.getDefaultSettings());
+    } catch (error) {
+      console.error('שגיאה באתחול הגדרות:', error);
+    }
+  }
+
+  // עדכון הגדרות מערכת
+  async updateSystemSettings(newSettings) {
+    try {
+      await update(this.settingsRef, {
+        systemSettings: newSettings,
+        updatedAt: new Date().toISOString()
+      });
+
+      return {
+        success: true,
+        settings: newSettings
+      };
+    } catch (error) {
+      console.error('שגיאה בעדכון הגדרות:', error);
+      return {
+        success: false,
+        message: 'שגיאה בעדכון הגדרות'
+      };
+    }
+  }
+
+  // שליפת כל הדירות
+  async getApartments() {
+    try {
+      const snapshot = await get(this.apartmentsRef);
+      let apartments = [];
+
+      if (snapshot.exists()) {
+        apartments = Object.entries(snapshot.val()).map(([id, apartment]) => ({
+          id,
+          ...apartment
+        }));
       }
-    };
 
-    // אם אין הגדרות ב-localStorage, יצירת הגדרות ברירת מחדל
-    if (!localStorage.getItem('systemSettings')) {
-      localStorage.setItem('systemSettings', JSON.stringify(defaultSettings));
-    }
-  }
-
-  // שליפת כל ההגדרות
-  getSettings() {
-    const settings = localStorage.getItem('systemSettings');
-    return settings ? JSON.parse(settings) : null;
-  }
-
-  // עדכון הגדרות כלליות
-  updateSystemSettings(newSettings) {
-    const currentSettings = this.getSettings();
-    
-    // מיזוג ההגדרות החדשות עם ההגדרות הקיימות
-    const updatedSettings = {
-      ...currentSettings,
-      systemSettings: {
-        ...currentSettings.systemSettings,
-        ...newSettings
-      }
-    };
-
-    localStorage.setItem('systemSettings', JSON.stringify(updatedSettings));
-    return {
-      success: true,
-      settings: updatedSettings
-    };
-  }
-
-  // ניהול דירות - הוספת דירה
-  addApartment(apartmentData) {
-    const settings = this.getSettings();
-    
-    // בדיקה אם קיימת דירה עם אותו מזהה
-    const isDuplicateId = settings.apartments.some(
-      apt => apt.id === apartmentData.id
-    );
-
-    if (isDuplicateId) {
+      return {
+        success: true,
+        apartments: apartments
+      };
+    } catch (error) {
+      console.error('שגיאה בשליפת דירות:', error);
       return {
         success: false,
-        message: 'קיימת דירה עם מזהה זהה'
+        message: 'שגיאה בשליפת דירות'
       };
     }
-
-    settings.apartments.push(apartmentData);
-    localStorage.setItem('systemSettings', JSON.stringify(settings));
-
-    return {
-      success: true,
-      apartment: apartmentData
-    };
   }
 
-  // ניהול דירות - עדכון דירה
-  updateApartment(apartmentId, updatedData) {
-    const settings = this.getSettings();
-    const apartmentIndex = settings.apartments.findIndex(
-      apt => apt.id === apartmentId
-    );
+  // הוספת דירה
+  async addApartment(apartmentData) {
+    try {
+      const newApartmentRef = push(this.apartmentsRef);
+      const newApartment = {
+        ...apartmentData,
+        id: newApartmentRef.key,
+        createdAt: new Date().toISOString()
+      };
 
-    if (apartmentIndex === -1) {
+      await set(newApartmentRef, newApartment);
+
+      return {
+        success: true,
+        apartment: newApartment
+      };
+    } catch (error) {
+      console.error('שגיאה בהוספת דירה:', error);
       return {
         success: false,
-        message: 'דירה לא נמצאה'
+        message: 'שגיאה בהוספת דירה'
       };
     }
-
-    // עדכון פרטי הדירה
-    settings.apartments[apartmentIndex] = {
-      ...settings.apartments[apartmentIndex],
-      ...updatedData
-    };
-
-    localStorage.setItem('systemSettings', JSON.stringify(settings));
-
-    return {
-      success: true,
-      apartment: settings.apartments[apartmentIndex]
-    };
   }
 
-  // ניהול דירות - מחיקת דירה
-  deleteApartment(apartmentId) {
-    const settings = this.getSettings();
-    const originalLength = settings.apartments.length;
-    
-    // סינון הדירות ללא הדירה המבוקשת
-    settings.apartments = settings.apartments.filter(
-      apt => apt.id !== apartmentId
-    );
+  // עדכון דירה
+  async updateApartment(apartmentId, updatedData) {
+    try {
+      const apartmentRef = ref(db, `apartments/${apartmentId}`);
+      
+      const updatedApartment = {
+        ...updatedData,
+        id: apartmentId,
+        updatedAt: new Date().toISOString()
+      };
 
-    // בדיקה אם נמחקה דירה
-    if (settings.apartments.length === originalLength) {
+      await set(apartmentRef, updatedApartment);
+
+      return {
+        success: true,
+        apartment: updatedApartment
+      };
+    } catch (error) {
+      console.error('שגיאה בעדכון דירה:', error);
       return {
         success: false,
-        message: 'דירה לא נמצאה'
+        message: 'שגיאה בעדכון דירה'
       };
     }
-
-    localStorage.setItem('systemSettings', JSON.stringify(settings));
-
-    return {
-      success: true
-    };
   }
 
-  // שינוי סיסמת מנהל
-  changeAdminPassword(currentPassword, newPassword) {
-    const settings = this.getSettings();
+  // מחיקת דירה
+  async deleteApartment(apartmentId) {
+    try {
+      const apartmentRef = ref(db, `apartments/${apartmentId}`);
+      await remove(apartmentRef);
 
-    // בדיקת סיסמה נוכחית
-    if (settings.systemSettings.adminPassword !== currentPassword) {
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('שגיאה במחיקת דירה:', error);
       return {
         success: false,
-        message: 'סיסמה נוכחית שגויה'
+        message: 'שגיאה במחיקת דירה'
       };
     }
-
-    // עדכון סיסמה
-    settings.systemSettings.adminPassword = newPassword;
-    localStorage.setItem('systemSettings', JSON.stringify(settings));
-
-    return {
-      success: true
-    };
   }
 }
 
-// יצירת סינגלטון
 export default new SettingsService();
