@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ref, get } from 'firebase/database';
-import { auth, db } from '../services/firebase';
+import { auth, db } from '../firebase';
 import AuthService from '../services/authService';
 
 // יצירת קונטקסט להתחברות מנהל
