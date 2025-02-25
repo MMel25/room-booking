@@ -132,7 +132,7 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
                 key={month.value}
                 className={`px-3 py-2 rounded text-center ${
                   !month.isFuture && currentDate.getFullYear() === currentYear ? 'opacity-50 cursor-not-allowed' : 
-                  currentDate.getMonth() === month.value && currentDate.getFullYear() === year
+                  currentDate.getMonth() === month.value && currentDate.getFullYear() === currentYear
                     ? 'bg-amber-100 text-amber-900' 
                     : 'hover:bg-amber-50'
                 }`}
