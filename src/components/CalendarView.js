@@ -44,57 +44,32 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     });
   };
 
-  // עדכון החלקה אופקית לתמיכה בניווט בין חודשים 
-  // במצב עברית RTL - החלקה שמאלה = קדימה, החלקה ימינה = אחורה
+  // הסרנו את ניווט ההחלקה האופקית לתצוגת החודשים כמבוקש
   const handleTouchStart = useCallback((e) => {
-    // וודא שזה רק מגע יחיד
-    if (e.touches.length === 1) {
-      setTouchStart(e.touches[0].clientX);
-    }
+    // פונקציה ריקה - אין צורך בטיפול בהחלקה אופקית
   }, []);
 
   const handleTouchEnd = useCallback((e) => {
-    // וודא שזה רק מגע יחיד וקיים נקודת התחלה
-    if (touchStart !== null && e.changedTouches.length === 1) {
-      const touchEnd = e.changedTouches[0].clientX;
-      const touchDiff = touchStart - touchEnd;
+    // פונקציה ריקה - אין צורך בטיפול בהחלקה אופקית
+  }, []);
 
-      // בדוק אם ההחלקה מספיק גדולה
-      if (Math.abs(touchDiff) > 50) {
-        const newDate = new Date(currentDate);
-        if (touchDiff > 0) {
-          // החלקה שמאלה - קדימה בזמן ב-RTL
-          newDate.setMonth(newDate.getMonth() + 1);
-        } else {
-          // החלקה ימינה - אחורה בזמן ב-RTL
-          newDate.setMonth(newDate.getMonth() - 1);
-        }
-        setCurrentDate(newDate);
-      }
-
-      // איפוס נקודת ההתחלה
-      setTouchStart(null);
-    }
-  }, [touchStart, currentDate]);
-
-  // ניווט מהיר בין חודשים
+  // ניווט מהיר - הצגת 6 החודשים הבאים בלבד
   const MonthPicker = () => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth();
+    const today = new Date();
+    const futureMonths = [];
     
-    // רק החודשים העתידיים של השנה הנוכחית
-    const months = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date();
-      date.setMonth(i);
-      return {
-        name: new Intl.DateTimeFormat('he-IL', { month: 'long' }).format(date),
-        value: i,
-        isFuture: i >= currentMonth || currentDate.getFullYear() > currentYear
-      };
-    });
-
-    // רק השנה הנוכחית והבאה
-    const years = [currentYear, currentYear + 1];
+    // ייצור מערך של 6 החודשים הבאים
+    for (let i = 0; i < 6; i++) {
+      const futureDate = new Date(today);
+      futureDate.setMonth(today.getMonth() + i);
+      
+      futureMonths.push({
+        name: new Intl.DateTimeFormat('he-IL', { month: 'long' }).format(futureDate),
+        year: futureDate.getFullYear(),
+        month: futureDate.getMonth(),
+        label: new Intl.DateTimeFormat('he-IL', { month: 'long', year: 'numeric' }).format(futureDate)
+      });
+    }
 
     return (
       <div 
@@ -102,54 +77,27 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
         className="absolute top-full right-0 mt-2 bg-white shadow-lg rounded-lg p-4 z-10 max-h-64 overflow-y-auto"
         style={{ width: '300px' }}
       >
-        <div className="mb-4">
-          <div className="font-bold mb-2 text-amber-900">שנה:</div>
-          <div className="grid grid-cols-2 gap-2">
-            {years.map(year => (
-              <button
-                key={year}
-                className={`px-3 py-2 rounded text-center ${
-                  currentDate.getFullYear() === year 
-                    ? 'bg-amber-100 text-amber-900' 
-                    : 'hover:bg-amber-50'
-                }`}
-                onClick={() => {
-                  const newDate = new Date(currentDate);
-                  newDate.setFullYear(year);
-                  setCurrentDate(newDate);
-                }}
-              >
-                {year}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <div className="font-bold mb-2 text-amber-900">חודש:</div>
-          <div className="grid grid-cols-3 gap-2">
-            {months.map(month => (
-              <button
-                key={month.value}
-                className={`px-3 py-2 rounded text-center ${
-                  !month.isFuture && currentDate.getFullYear() === currentYear ? 'opacity-50 cursor-not-allowed' : 
-                  currentDate.getMonth() === month.value && currentDate.getFullYear() === currentYear
-                    ? 'bg-amber-100 text-amber-900' 
-                    : 'hover:bg-amber-50'
-                }`}
-                disabled={!month.isFuture && currentDate.getFullYear() === currentYear}
-                onClick={() => {
-                  if (month.isFuture || currentDate.getFullYear() > currentYear) {
-                    const newDate = new Date(currentDate);
-                    newDate.setMonth(month.value);
-                    setCurrentDate(newDate);
-                    setShowMonthPicker(false);
-                  }
-                }}
-              >
-                {month.name}
-              </button>
-            ))}
-          </div>
+        <div className="font-bold mb-2 text-amber-900">בחר חודש:</div>
+        <div className="grid grid-cols-2 gap-2">
+          {futureMonths.map((item, index) => (
+            <button
+              key={index}
+              className={`px-3 py-2 rounded text-center ${
+                currentDate.getMonth() === item.month && currentDate.getFullYear() === item.year
+                  ? 'bg-amber-100 text-amber-900' 
+                  : 'hover:bg-amber-50'
+              }`}
+              onClick={() => {
+                const newDate = new Date(currentDate);
+                newDate.setFullYear(item.year);
+                newDate.setMonth(item.month);
+                setCurrentDate(newDate);
+                setShowMonthPicker(false);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       </div>
     );
@@ -199,10 +147,8 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     return (
       <div 
         className="grid grid-cols-7 gap-1"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
         style={{ 
-          touchAction: 'pan-y', 
+          touchAction: 'auto', 
           userSelect: 'none',
           WebkitUserSelect: 'none'
         }}
