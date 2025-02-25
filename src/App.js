@@ -1,9 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { ref, get, set } from 'firebase/database';
+import { 
+  BrowserRouter as Router, 
+  Routes, 
+  Route, 
+  Navigate, 
+  useNavigate 
+} from 'react-router-dom';
 import { db } from './firebase';
 import AccessPage from './components/AccessPage';
 import CalendarView from './components/CalendarView';
 import BookingForm from './components/BookingForm';
+import AdminLogin from './components/AdminLogin';
+import AdminDashboard from './components/AdminDashboard';
+import BookingManagement from './components/BookingManagement';
+import SystemSettings from './components/SystemSettings';
+
+// קומפוננטת הגנה על נתיבים
+const ProtectedRoute = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // בדיקת מצב התחברות
+    const checkAuth = async () => {
+      const storedAuth = localStorage.getItem('isAuthenticated');
+      setIsAuthenticated(storedAuth === 'true');
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        טוען...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/access" replace />;
+  }
+
+  return children;
+};
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -58,50 +101,109 @@ const App = () => {
     fetchBookings();
   }, []);
 
-  if (!isAuthenticated) {
-    return (
-      <AccessPage 
-        onAuthenticate={() => setIsAuthenticated(true)} 
-        settings={settings}
-      />
-    );
-  }
+  // הגדרת מצב מחובר
+  const handleAuthenticate = () => {
+    setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
+  };
+
+  // התנתקות
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('isAuthenticated');
+  };
 
   return (
-    <div dir="rtl">
-      <CalendarView
-        bookings={bookings}
-        onTimeSelect={(date, time) => {
-          setSelectedDate(date);
-          setSelectedTime(time);
-          setShowBookingForm(true);
-        }}
-        settings={settings}
-      />
-      
-      {showBookingForm && (
-        <BookingForm
-          selectedDate={selectedDate}
-          selectedTime={selectedTime}
-          onClose={() => setShowBookingForm(false)}
-          settings={settings}
-          onSubmit={async (bookingData) => {
-            try {
-              // שמירת ההזמנה החדשה ב-Firebase
-              const newBookingRef = ref(db, `bookings/${Date.now()}`);
-              await set(newBookingRef, bookingData);
-              
-              // עדכון הרשימה המקומית
-              setBookings([...bookings, { id: Date.now(), ...bookingData }]);
-              setShowBookingForm(false);
-            } catch (error) {
-              console.error('Error saving booking:', error);
-              alert('אירעה שגיאה בשמירת ההזמנה. נסה שוב מאוחר יותר.');
-            }
-          }}
+    <Router>
+      <Routes>
+        {/* נתיב הכניסה והאימות */}
+        <Route 
+          path="/access" 
+          element={
+            <AccessPage 
+              onAuthenticate={handleAuthenticate} 
+              settings={settings}
+            />
+          } 
         />
-      )}
-    </div>
+
+        {/* נתיב הלוח שנה - מוגן */}
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <div dir="rtl">
+                <CalendarView
+                  bookings={bookings}
+                  onTimeSelect={(date, time) => {
+                    setSelectedDate(date);
+                    setSelectedTime(time);
+                    setShowBookingForm(true);
+                  }}
+                  settings={settings}
+                />
+                
+                {showBookingForm && (
+                  <BookingForm
+                    selectedDate={selectedDate}
+                    selectedTime={selectedTime}
+                    onClose={() => setShowBookingForm(false)}
+                    settings={settings}
+                    onSubmit={async (bookingData) => {
+                      try {
+                        // שמירת ההזמנה החדשה ב-Firebase
+                        const newBookingRef = ref(db, `bookings/${Date.now()}`);
+                        await set(newBookingRef, bookingData);
+                        
+                        // עדכון הרשימה המקומית
+                        setBookings([...bookings, { id: Date.now(), ...bookingData }]);
+                        setShowBookingForm(false);
+                      } catch (error) {
+                        console.error('Error saving booking:', error);
+                        alert('אירעה שגיאה בשמירת ההזמנה. נסה שוב מאוחר יותר.');
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* נתיבי מנהל */}
+        <Route 
+          path="/admin/login" 
+          element={<AdminLogin onLogin={handleAuthenticate} />} 
+        />
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <ProtectedRoute>
+              <AdminDashboard onLogout={handleLogout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/bookings" 
+          element={
+            <ProtectedRoute>
+              <BookingManagement onLogout={handleLogout} />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/settings" 
+          element={
+            <ProtectedRoute>
+              <SystemSettings onLogout={handleLogout} />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* הפניה דיפולטיבית */}
+        <Route path="*" element={<Navigate to="/access" replace />} />
+      </Routes>
+    </Router>
   );
 };
 
