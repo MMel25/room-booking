@@ -7,7 +7,7 @@ import {
   push,
   remove
 } from "firebase/database";
-import { db } from './firebase';
+import { db } from '../firebase';
 
 class SettingsService {
   constructor() {
