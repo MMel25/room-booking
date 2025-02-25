@@ -1,156 +1,141 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-import { Trash2, Edit2 } from 'lucide-react';
+import BookingManagement from './BookingManagement';
+import SystemSettings from './SystemSettings';
+import { Home, Settings, Calendar } from 'lucide-react';
 
-const BookingManagement = ({ bookings, onDeleteBooking, onEditBooking }) => {
-  const [filteredBookings, setFilteredBookings] = useState(bookings);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'asc' });
+const AdminDashboard = ({ onLogout }) => {
+  // מצבים לניהול התצוגה הנוכחית
+  const [activeView, setActiveView] = useState('dashboard');
+  
+  // דאטה דמה להדגמה - בפועל תחליף זאת בקריאת נתונים ממסד הנתונים
+  const [bookings, setBookings] = useState([
+    {
+      date: '2024-02-25', 
+      startTime: '10', 
+      endTime: '14', 
+      apartment: 1, 
+      name: 'ישראל כהן'
+    },
+    {
+      date: '2024-02-26', 
+      startTime: '12', 
+      endTime: '16', 
+      apartment: 2, 
+      name: 'שרה לוי'
+    }
+  ]);
 
-  // פונקציית מיון
-  const sortBookings = (bookingsToSort) => {
-    return [...bookingsToSort].sort((a, b) => {
-      if (a[sortConfig.key] < b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (a[sortConfig.key] > b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
+  // פונקציות לניהול הזמנות
+  const handleDeleteBooking = (bookingToDelete) => {
+    setBookings(bookings.filter(booking => booking !== bookingToDelete));
   };
 
-  // עדכון רשימת ההזמנות המסוננות
-  useEffect(() => {
-    let result = bookings;
-    
-    // סינון לפי מונח חיפוש
-    if (searchTerm) {
-      result = result.filter(booking => 
-        booking.name.includes(searchTerm) ||
-        booking.apartment.toString().includes(searchTerm) ||
-        booking.date.includes(searchTerm)
-      );
-    }
-    
-    // מיון
-    result = sortBookings(result);
-    
-    setFilteredBookings(result);
-  }, [bookings, searchTerm, sortConfig]);
+  const handleEditBooking = (bookingToEdit) => {
+    // כאן תוסיף לוגיקה לעריכת הזמנה
+    console.log('עריכת הזמנה:', bookingToEdit);
+  };
 
-  // פונקציית מיון
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
-    }));
+  // רינדור תפריט צד
+  const renderSidebar = () => {
+    const menuItems = [
+      { 
+        key: 'dashboard', 
+        label: 'לוח בקרה', 
+        icon: <Home className="w-5 h-5" /> 
+      },
+      { 
+        key: 'bookings', 
+        label: 'ניהול הזמנות', 
+        icon: <Calendar className="w-5 h-5" /> 
+      },
+      { 
+        key: 'settings', 
+        label: 'הגדרות מערכת', 
+        icon: <Settings className="w-5 h-5" /> 
+      }
+    ];
+
+    return (
+      <div className="w-64 bg-amber-50 p-4 border-l" dir="rtl">
+        <div className="mb-6 text-center">
+          <h2 className="text-xl font-bold text-amber-900">
+            ממשק ניהול
+          </h2>
+        </div>
+        {menuItems.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => setActiveView(item.key)}
+            className={`w-full flex items-center p-3 mb-2 rounded 
+              ${activeView === item.key 
+                ? 'bg-amber-200 text-amber-900' 
+                : 'hover:bg-amber-100'}`}
+          >
+            <span className="ml-2">{item.icon}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
+        <button
+          onClick={onLogout}
+          className="w-full p-3 mt-4 bg-red-100 text-red-700 rounded hover:bg-red-200"
+        >
+          התנתק
+        </button>
+      </div>
+    );
+  };
+
+  // רינדור תצוגת התוכן המרכזית
+  const renderContent = () => {
+    switch(activeView) {
+      case 'bookings':
+        return (
+          <BookingManagement 
+            bookings={bookings}
+            onDeleteBooking={handleDeleteBooking}
+            onEditBooking={handleEditBooking}
+          />
+        );
+      case 'settings':
+        return <SystemSettings />;
+      default:
+        return (
+          <Card className="m-4">
+            <CardHeader>
+              <CardTitle className="text-xl text-amber-900">
+                סקירה כללית
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-amber-50 p-4 rounded">
+                  <h3 className="text-lg font-semibold">הזמנות היום</h3>
+                  <p className="text-2xl">{bookings.length}</p>
+                </div>
+                <div className="bg-amber-50 p-4 rounded">
+                  <h3 className="text-lg font-semibold">דירות פעילות</h3>
+                  <p className="text-2xl">2</p>
+                </div>
+                <div className="bg-amber-50 p-4 rounded">
+                  <h3 className="text-lg font-semibold">סה״כ הזמנות</h3>
+                  <p className="text-2xl">{bookings.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+    }
   };
 
   return (
-    <div className="p-4" dir="rtl">
-      <Card>
-        <CardHeader className="bg-white border-b">
-          <CardTitle className="text-xl text-amber-900">
-            ניהול הזמנות
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          {/* שורת חיפוש וסינון */}
-          <div className="mb-4 flex gap-4">
-            <input
-              type="text"
-              placeholder="חפש לפי שם, דירה או תאריך"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-grow p-2 rounded border border-amber-200"
-            />
-          </div>
-
-          {/* טבלת הזמנות */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-amber-50">
-                  <th 
-                    className="p-2 text-right cursor-pointer hover:bg-amber-100"
-                    onClick={() => handleSort('date')}
-                  >
-                    תאריך
-                    {sortConfig.key === 'date' && 
-                      (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
-                  </th>
-                  <th 
-                    className="p-2 text-right cursor-pointer hover:bg-amber-100"
-                    onClick={() => handleSort('startTime')}
-                  >
-                    שעת התחלה
-                    {sortConfig.key === 'startTime' && 
-                      (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
-                  </th>
-                  <th 
-                    className="p-2 text-right cursor-pointer hover:bg-amber-100"
-                    onClick={() => handleSort('endTime')}
-                  >
-                    שעת סיום
-                    {sortConfig.key === 'endTime' && 
-                      (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
-                  </th>
-                  <th 
-                    className="p-2 text-right cursor-pointer hover:bg-amber-100"
-                    onClick={() => handleSort('apartment')}
-                  >
-                    דירה
-                    {sortConfig.key === 'apartment' && 
-                      (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
-                  </th>
-                  <th 
-                    className="p-2 text-right cursor-pointer hover:bg-amber-100"
-                    onClick={() => handleSort('name')}
-                  >
-                    שם
-                    {sortConfig.key === 'name' && 
-                      (sortConfig.direction === 'asc' ? ' ▲' : ' ▼')}
-                  </th>
-                  <th className="p-2">פעולות</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBookings.map((booking, index) => (
-                  <tr key={index} className="border-b hover:bg-amber-50/30">
-                    <td className="p-2">{booking.date}</td>
-                    <td className="p-2">{booking.startTime}:00</td>
-                    <td className="p-2">{booking.endTime}:00</td>
-                    <td className="p-2">{booking.apartment}</td>
-                    <td className="p-2">{booking.name}</td>
-                    <td className="p-2 flex gap-2">
-                      <button 
-                        onClick={() => onEditBooking(booking)}
-                        className="text-amber-700 hover:bg-amber-100 p-1 rounded"
-                      >
-                        <Edit2 className="h-5 w-5" />
-                      </button>
-                      <button 
-                        onClick={() => onDeleteBooking(booking)}
-                        className="text-red-700 hover:bg-red-100 p-1 rounded"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredBookings.length === 0 && (
-              <div className="text-center text-amber-700 p-4">
-                לא נמצאו הזמנות
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+    <div className="flex h-screen bg-white" dir="rtl">
+      {renderSidebar()}
+      <div className="flex-grow overflow-y-auto">
+        {renderContent()}
+      </div>
     </div>
   );
 };
 
-export default BookingManagement;
+export default AdminDashboard;
