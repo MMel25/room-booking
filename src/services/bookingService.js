@@ -10,7 +10,7 @@ import {
   orderByChild,
   equalTo 
 } from "firebase/database";
-import { db } from './firebase';
+import { db } from '../firebase';
 
 class BookingService {
   constructor() {
