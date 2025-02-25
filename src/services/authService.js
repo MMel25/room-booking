@@ -17,7 +17,7 @@ class AuthService {
     this.auth = getAuth();
   }
 
-  // התחברות למנהל
+  // התחברות למשתמש (מנהל או רגיל)
   async login(email, password) {
     try {
       // אימות מול Firebase Authentication
@@ -27,18 +27,6 @@ class AuthService {
         password
       );
       
-      // בדיקה אם המשתמש הוא מנהל
-      const adminRef = ref(db, `admins/${userCredential.user.uid}`);
-      const snapshot = await get(adminRef);
-      
-      if (!snapshot.exists()) {
-        // התנתקות אם המשתמש אינו מנהל
-        await signOut(this.auth);
-        return {
-          success: false,
-          message: 'אין הרשאת מנהל'
-        };
-      }
       return {
         success: true,
         user: userCredential.user
@@ -51,8 +39,8 @@ class AuthService {
     }
   }
 
-  // יצירת משתמש מנהל חדש
-  async createAdminUser(email, password, adminDetails) {
+  // יצירת משתמש חדש
+  async createUser(email, password, userDetails) {
     try {
       const userCredential = await createUserWithEmailAndPassword(
         this.auth,
@@ -60,13 +48,14 @@ class AuthService {
         password
       );
       
-      // שמירת פרטי מנהל במסד הנתונים
-      const adminRef = ref(db, `admins/${userCredential.user.uid}`);
-      await set(adminRef, {
+      // שמירת פרטי המשתמש במסד הנתונים
+      const userRef = ref(db, `users/${userCredential.user.uid}`);
+      await set(userRef, {
         email: userCredential.user.email,
-        ...adminDetails,
+        ...userDetails,
         createdAt: new Date().toISOString()
       });
+
       return {
         success: true,
         user: userCredential.user
