@@ -29,9 +29,9 @@ const AccessPage = ({ onAuthenticate, settings }) => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4" 
+      className="min-h-screen flex items-end justify-center p-4 sm:items-center" 
       style={{ 
-        backgroundImage: 'url(https://images.unsplash.com/photo-1600210492493-0946911123ea?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)',
+        backgroundImage: 'url(https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'
@@ -44,7 +44,7 @@ const AccessPage = ({ onAuthenticate, settings }) => {
         style={{ backdropFilter: 'blur(1px)' }}
       ></div>
       
-      <div className="w-full max-w-md relative z-10">
+      <div className="w-full max-w-md relative z-10 mb-8 sm:mb-0">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-white bg-opacity-90 mb-4 shadow-sm">
             <Lock className="h-8 w-8 text-amber-900" />
