@@ -1,39 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { useAdminAuth } from '../context/AdminAuthContext';
+import { useNavigate } from 'react-router-dom';
+import { Home, Settings, Calendar, LogOut } from 'lucide-react';
+
 import BookingManagement from './BookingManagement';
 import SystemSettings from './SystemSettings';
-import { Home, Settings, Calendar } from 'lucide-react';
+import BookingService from '../services/bookingService';
+import SettingsService from '../services/settingsService';
 
-const AdminDashboard = ({ onLogout }) => {
-  // מצבים לניהול התצוגה הנוכחית
+const AdminDashboard = () => {
+  // שימוש בהוקים
+  const { user, logout } = useAdminAuth();
+  const navigate = useNavigate();
+
+  // מצבי הקומפוננטה
   const [activeView, setActiveView] = useState('dashboard');
-  
-  // דאטה דמה להדגמה - בפועל תחליף זאת בקריאת נתונים ממסד הנתונים
-  const [bookings, setBookings] = useState([
-    {
-      date: '2024-02-25', 
-      startTime: '10', 
-      endTime: '14', 
-      apartment: 1, 
-      name: 'ישראל כהן'
-    },
-    {
-      date: '2024-02-26', 
-      startTime: '12', 
-      endTime: '16', 
-      apartment: 2, 
-      name: 'שרה לוי'
-    }
-  ]);
+  const [bookings, setBookings] = useState([]);
+  const [apartments, setApartments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // פונקציות לניהול הזמנות
-  const handleDeleteBooking = (bookingToDelete) => {
-    setBookings(bookings.filter(booking => booking !== bookingToDelete));
+  // טעינת נתונים ראשונית
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        // טעינת הזמנות
+        const bookingsResult = await BookingService.getBookings();
+        if (bookingsResult.success) {
+          setBookings(bookingsResult.bookings);
+        }
+
+        // טעינת דירות
+        const apartmentsResult = await SettingsService.getApartments();
+        if (apartmentsResult.success) {
+          setApartments(apartmentsResult.apartments);
+        }
+      } catch (error) {
+        console.error('שגיאה בטעינת נתונים:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
+
+  // פונקציות ניהול הזמנות
+  const handleDeleteBooking = async (bookingToDelete) => {
+    const result = await BookingService.deleteBooking(bookingToDelete.id);
+    
+    if (result.success) {
+      setBookings(bookings.filter(b => b.id !== bookingToDelete.id));
+    }
   };
 
-  const handleEditBooking = (bookingToEdit) => {
+  const handleEditBooking = async (bookingToEdit) => {
     // כאן תוסיף לוגיקה לעריכת הזמנה
     console.log('עריכת הזמנה:', bookingToEdit);
+  };
+
+  // פונקציית התנתקות
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   // רינדור תפריט צד
@@ -62,6 +91,9 @@ const AdminDashboard = ({ onLogout }) => {
           <h2 className="text-xl font-bold text-amber-900">
             ממשק ניהול
           </h2>
+          <p className="text-sm text-amber-700">
+            {user?.email}
+          </p>
         </div>
         {menuItems.map((item) => (
           <button
@@ -77,9 +109,10 @@ const AdminDashboard = ({ onLogout }) => {
           </button>
         ))}
         <button
-          onClick={onLogout}
-          className="w-full p-3 mt-4 bg-red-100 text-red-700 rounded hover:bg-red-200"
+          onClick={handleLogout}
+          className="w-full flex items-center p-3 mt-4 bg-red-100 text-red-700 rounded hover:bg-red-200"
         >
+          <LogOut className="w-5 h-5 ml-2" />
           התנתק
         </button>
       </div>
@@ -88,6 +121,14 @@ const AdminDashboard = ({ onLogout }) => {
 
   // רינדור תצוגת התוכן המרכזית
   const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <p className="text-amber-900">טוען נתונים...</p>
+        </div>
+      );
+    }
+
     switch(activeView) {
       case 'bookings':
         return (
@@ -111,31 +152,6 @@ const AdminDashboard = ({ onLogout }) => {
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-amber-50 p-4 rounded">
                   <h3 className="text-lg font-semibold">הזמנות היום</h3>
-                  <p className="text-2xl">{bookings.length}</p>
-                </div>
-                <div className="bg-amber-50 p-4 rounded">
-                  <h3 className="text-lg font-semibold">דירות פעילות</h3>
-                  <p className="text-2xl">2</p>
-                </div>
-                <div className="bg-amber-50 p-4 rounded">
-                  <h3 className="text-lg font-semibold">סה״כ הזמנות</h3>
-                  <p className="text-2xl">{bookings.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-    }
-  };
-
-  return (
-    <div className="flex h-screen bg-white" dir="rtl">
-      {renderSidebar()}
-      <div className="flex-grow overflow-y-auto">
-        {renderContent()}
-      </div>
-    </div>
-  );
-};
-
-export default AdminDashboard;
+                  <p className="text-2xl">
+                    {bookings.filter(b => 
+                      b.date === new Date().toISO
