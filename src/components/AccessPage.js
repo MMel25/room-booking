@@ -31,7 +31,7 @@ const AccessPage = ({ onAuthenticate, settings }) => {
     <div 
       className="min-h-screen flex items-end justify-center p-4 sm:items-center" 
       style={{ 
-        backgroundImage: 'url(https://drive.google.com/drive/u/0/my-drive)',
+        backgroundImage: 'url(https://drive.google.com/uc?export=view&id=1tI3wZSZ1rDjVq0TMRD6JnypnZApvXGM9)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'
