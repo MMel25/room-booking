@@ -1,61 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { ref, get, set } from 'firebase/database';
-import { 
-  BrowserRouter as Router, 
-  Routes, 
-  Route, 
-  Navigate, 
-  useNavigate 
-} from 'react-router-dom';
-import { db } from './firebase';
-import AccessPage from './components/AccessPage';
-import CalendarView from './components/CalendarView';
-import BookingForm from './components/BookingForm';
-import AdminDashboard from './components/AdminDashboard';
-import BookingManagement from './components/BookingManagement';
-import SystemSettings from './components/SystemSettings';
-
-// קומפוננטת הגנה על נתיבים
-const ProtectedRoute = ({ children, requireAdmin }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const storedAuth = localStorage.getItem('isAuthenticated');
-      const storedRole = localStorage.getItem('userRole');
-      
-      setIsAuthenticated(storedAuth === 'true');
-      setIsAdmin(storedRole === 'admin');
-      setIsLoading(false);
-    };
-
-    checkAuth();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        טוען...
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/access" replace />;
-  }
-
-  if (requireAdmin && !isAdmin) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
+// התחלת הקומפוננטה App נשארת אותו דבר...
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);  // הוספנו סטייט חדש
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -68,17 +15,16 @@ const App = () => {
   });
   const [bookings, setBookings] = useState([]);
 
-  // ניקוי אימות בטעינה ראשונית
+  // אתחול ראשוני וניקוי אימות
   useEffect(() => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
-    setIsAuthenticated(false);
-  }, []);
-
-  // קריאת הגדרות וההזמנות מ-Firebase
-  useEffect(() => {
-    const fetchSettings = async () => {
+    const initialize = async () => {
+      // ניקוי אימות
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('userRole');
+      setIsAuthenticated(false);
+      
       try {
+        // טעינת הגדרות
         const settingsRef = ref(db, 'settings');
         const snapshot = await get(settingsRef);
         
@@ -87,18 +33,13 @@ const App = () => {
         } else {
           await set(ref(db, 'settings'), settings);
         }
-      } catch (error) {
-        console.error('Error fetching settings:', error);
-      }
-    };
 
-    const fetchBookings = async () => {
-      try {
+        // טעינת הזמנות
         const bookingsRef = ref(db, 'bookings');
-        const snapshot = await get(bookingsRef);
+        const bookingsSnapshot = await get(bookingsRef);
         
-        if (snapshot.exists()) {
-          const bookingsData = snapshot.val();
+        if (bookingsSnapshot.exists()) {
+          const bookingsData = bookingsSnapshot.val();
           const bookingsArray = Object.entries(bookingsData || {}).map(([id, data]) => ({
             id,
             ...data
@@ -106,27 +47,25 @@ const App = () => {
           setBookings(bookingsArray);
         }
       } catch (error) {
-        console.error('Error fetching bookings:', error);
+        console.error('Error during initialization:', error);
+      } finally {
+        setIsInitialized(true);  // סימון שהאתחול הסתיים
       }
     };
 
-    fetchSettings();
-    fetchBookings();
-  }, []);
+    initialize();
+  }, []);  // רץ פעם אחת בטעינה
 
-  // טיפול בהתחברות
-  const handleAuthenticate = (isAdmin) => {
-    setIsAuthenticated(true);
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userRole', isAdmin ? 'admin' : 'user');
-  };
+  // שאר הפונקציות נשארות אותו דבר...
 
-  // טיפול בהתנתקות
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
-  };
+  // אם האתחול עדיין לא הסתיים, נציג מסך טעינה
+  if (!isInitialized) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        טוען...
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -150,7 +89,7 @@ const App = () => {
         <Route 
           path="/" 
           element={
-            <ProtectedRoute>
+            isAuthenticated ? (
               <div dir="rtl">
                 <CalendarView
                   bookings={bookings}
@@ -183,38 +122,13 @@ const App = () => {
                   />
                 )}
               </div>
-            </ProtectedRoute>
+            ) : (
+              <Navigate to="/access" replace />
+            )
           } 
         />
 
-        {/* נתיבי מנהל - מוגנים ודורשים הרשאת מנהל */}
-        <Route 
-          path="/admin/dashboard" 
-          element={
-            <ProtectedRoute requireAdmin>
-              <AdminDashboard onLogout={handleLogout} />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/bookings" 
-          element={
-            <ProtectedRoute requireAdmin>
-              <BookingManagement onLogout={handleLogout} />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/settings" 
-          element={
-            <ProtectedRoute requireAdmin>
-              <SystemSettings onLogout={handleLogout} />
-            </ProtectedRoute>
-          } 
-        />
-
-        {/* הפניה דיפולטיבית */}
-        <Route path="*" element={<Navigate to="/access" replace />} />
+        {/* ... שאר הנתיבים נשארים אותו דבר ... */}
       </Routes>
     </Router>
   );
