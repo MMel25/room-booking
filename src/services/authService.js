@@ -27,10 +27,25 @@ class AuthService {
         password
       );
       
-      return {
-        success: true,
-        user: userCredential.user
-      };
+      // בדיקת תפקיד המשתמש
+      const userRef = ref(db, `users/${userCredential.user.uid}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        return {
+          success: true,
+          user: userCredential.user,
+          role: userData.role || 'user'
+        };
+      } else {
+        // אם המשתמש לא נמצא במסד הנתונים, התנתק
+        await signOut(this.auth);
+        return {
+          success: false,
+          message: 'משתמש לא נמצא'
+        };
+      }
     } catch (error) {
       return {
         success: false,
@@ -52,6 +67,7 @@ class AuthService {
       const userRef = ref(db, `users/${userCredential.user.uid}`);
       await set(userRef, {
         email: userCredential.user.email,
+        role: 'user',
         ...userDetails,
         createdAt: new Date().toISOString()
       });
