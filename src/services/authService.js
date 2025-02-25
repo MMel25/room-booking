@@ -1,124 +1,93 @@
 // src/services/authService.js
-import { 
-  ref, 
-  get, 
-  set 
-} from "firebase/database";
-import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  createUserWithEmailAndPassword,
-  getAuth
-} from "firebase/auth";
+import { ref, get } from "firebase/database";
 import { db } from '../firebase';
 
 class AuthService {
   constructor() {
-    this.auth = getAuth();
+    this.isLoggedIn = false;
+    this.userRole = null;
   }
 
-  // התחברות למשתמש (מנהל או רגיל)
-  async login(email, password) {
+  // התחברות למערכת
+  async login(code, isAdminLogin = false) {
     try {
-      // אימות מול Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(
-        this.auth,
-        email,
-        password
-      );
+      // המרה למספר במקרה שהקוד הוכנס כמחרוזת
+      const numericCode = Number(code);
       
-      // בדיקת תפקיד המשתמש
-      const userRef = ref(db, `users/${userCredential.user.uid}`);
-      const snapshot = await get(userRef);
+      // שליפת הגדרות מהפיירבייס
+      const settingsRef = ref(db, 'settings');
+      const snapshot = await get(settingsRef);
       
-      if (snapshot.exists()) {
-        const userData = snapshot.val();
-        return {
-          success: true,
-          user: userCredential.user,
-          role: userData.role || 'user'
-        };
-      } else {
-        // אם המשתמש לא נמצא במסד הנתונים, התנתק
-        await signOut(this.auth);
+      if (!snapshot.exists()) {
         return {
           success: false,
-          message: 'משתמש לא נמצא'
+          message: 'לא נמצאו הגדרות מערכת'
         };
       }
-    } catch (error) {
-      return {
-        success: false,
-        message: this.getErrorMessage(error.code)
-      };
-    }
-  }
 
-  // יצירת משתמש חדש
-  async createUser(email, password, userDetails) {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        this.auth,
-        email,
-        password
-      );
+      const settings = snapshot.val();
       
-      // שמירת פרטי המשתמש במסד הנתונים
-      const userRef = ref(db, `users/${userCredential.user.uid}`);
-      await set(userRef, {
-        email: userCredential.user.email,
-        role: 'user',
-        ...userDetails,
-        createdAt: new Date().toISOString()
-      });
-
-      return {
-        success: true,
-        user: userCredential.user
-      };
+      // בדיקה האם זה ניסיון התחברות לממשק ניהול
+      if (isAdminLogin) {
+        if (numericCode === settings.adminCode) {
+          this.isLoggedIn = true;
+          this.userRole = 'admin';
+          return {
+            success: true,
+            role: 'admin'
+          };
+        } else {
+          return {
+            success: false,
+            message: 'קוד מנהל שגוי'
+          };
+        }
+      } 
+      // התחברות משתמש רגיל
+      else {
+        if (numericCode === settings.accessCode) {
+          this.isLoggedIn = true;
+          this.userRole = 'user';
+          return {
+            success: true,
+            role: 'user'
+          };
+        } else {
+          return {
+            success: false,
+            message: 'קוד כניסה שגוי'
+          };
+        }
+      }
     } catch (error) {
+      console.error('Login error:', error);
       return {
         success: false,
-        message: this.getErrorMessage(error.code)
+        message: 'אירעה שגיאה. אנא נסה שוב'
       };
     }
   }
 
-  // התנתקות
-  async logout() {
-    try {
-      await signOut(this.auth);
-      return { success: true };
-    } catch (error) {
-      return { 
-        success: false, 
-        message: this.getErrorMessage(error.code) 
-      };
-    }
-  }
-
-  // תרגום קודי שגיאה של Firebase
-  getErrorMessage(errorCode) {
-    const errorMessages = {
-      'auth/invalid-email': 'כתובת אימייל לא תקינה',
-      'auth/user-disabled': 'המשתמש נחסם',
-      'auth/user-not-found': 'משתמש לא נמצא',
-      'auth/wrong-password': 'סיסמה שגויה',
-      'auth/email-already-in-use': 'האימייל כבר בשימוש',
-      'auth/weak-password': 'הסיסמה חלשה מדי',
-      'default': 'אירעה שגיאה. אנא נסה שוב'
-    };
-    return errorMessages[errorCode] || errorMessages['default'];
+  // התנתקות מהמערכת
+  logout() {
+    this.isLoggedIn = false;
+    this.userRole = null;
+    return { success: true };
   }
 
   // בדיקת סטטוס התחברות
   isAuthenticated() {
-    return !!this.auth.currentUser;
+    return this.isLoggedIn;
   }
 
-  // שליפת המשתמש הנוכחי
-  getCurrentUser() {
-    return this.auth.currentUser;
+  // שליפת תפקיד המשתמש הנוכחי
+  getUserRole() {
+    return this.userRole;
+  }
+
+  // בדיקה האם המשתמש הוא מנהל
+  isAdmin() {
+    return this.userRole === 'admin';
   }
 }
 
