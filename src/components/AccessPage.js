@@ -31,7 +31,7 @@ const AccessPage = ({ onAuthenticate, settings }) => {
     <div 
       className="min-h-screen flex items-end justify-center p-4 sm:items-center" 
       style={{ 
-        backgroundImage: 'url(https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)',
+        backgroundImage: 'url(https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'
