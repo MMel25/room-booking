@@ -1,6 +1,3 @@
-העתק את הקוד האחרון ששלחתי - הוא המעודכן ביותר עם כל השינויים שביקשת. הנה הקוד שצריך להעתיק:
-
-```javascript
 import React, { useState } from 'react';
 import { Lock, Loader2 } from 'lucide-react';
 
@@ -101,6 +98,3 @@ const AccessPage = ({ onAuthenticate, settings }) => {
 };
 
 export default AccessPage;
-```
-
-זהו הקוד הסופי והעדכני ביותר שכולל את כל השינויים שביקשת, כולל תמונת רקע של חדר דיירים יוקרתי, עיצוב מותאם, וטופס נקי וברור.
