@@ -1,157 +1,199 @@
-// bookingService.js
-import { v4 as uuidv4 } from 'uuid';
+// src/services/bookingService.js
+import { 
+  ref, 
+  push, 
+  set, 
+  get, 
+  update, 
+  remove,
+  query,
+  orderByChild,
+  equalTo 
+} from "firebase/database";
+import { db } from './firebase';
 
 class BookingService {
   constructor() {
-    // אתחול מקומי של ההזמנות ב-localStorage אם לא קיים
-    if (!localStorage.getItem('bookings')) {
-      localStorage.setItem('bookings', JSON.stringify([]));
+    this.bookingsRef = ref(db, 'bookings');
+  }
+
+  // הוספת הזמנה חדשה
+  async addBooking(bookingData) {
+    try {
+      // בדיקת חפיפה עם הזמנות קיימות
+      const overlappingQuery = query(
+        this.bookingsRef, 
+        orderByChild('apartment'), 
+        equalTo(bookingData.apartment)
+      );
+
+      const snapshot = await get(overlappingQuery);
+      const existingBookings = snapshot.val() || {};
+
+      // בדיקת חפיפת זמנים
+      const isOverlapping = Object.values(existingBookings).some(booking => 
+        booking.date === bookingData.date &&
+        this.isTimeOverlapping(
+          booking.startTime, 
+          booking.endTime, 
+          bookingData.startTime, 
+          bookingData.endTime
+        )
+      );
+
+      if (isOverlapping) {
+        return {
+          success: false,
+          message: 'קיימת הזמנה חופפת עבור דירה זו בתאריך ובשעות אלה'
+        };
+      }
+
+      // הוספת הזמנה חדשה
+      const newBookingRef = push(this.bookingsRef);
+      const newBooking = {
+        ...bookingData,
+        id: newBookingRef.key,
+        createdAt: new Date().toISOString()
+      };
+
+      await set(newBookingRef, newBooking);
+
+      return {
+        success: true,
+        booking: newBooking
+      };
+    } catch (error) {
+      console.error('שגיאה בהוספת הזמנה:', error);
+      return {
+        success: false,
+        message: 'שגיאה בהוספת הזמנה'
+      };
     }
   }
 
   // שליפת כל ההזמנות
-  getBookings() {
-    const bookings = localStorage.getItem('bookings');
-    return bookings ? JSON.parse(bookings) : [];
+  async getBookings(filters = {}) {
+    try {
+      const snapshot = await get(this.bookingsRef);
+      let bookings = [];
+
+      if (snapshot.exists()) {
+        bookings = Object.values(snapshot.val());
+
+        // סינון לפי תאריך
+        if (filters.date) {
+          bookings = bookings.filter(b => b.date === filters.date);
+        }
+
+        // סינון לפי דירה
+        if (filters.apartment) {
+          bookings = bookings.filter(b => b.apartment === filters.apartment);
+        }
+
+        // סינון לפי שם
+        if (filters.name) {
+          bookings = bookings.filter(b => 
+            b.name.toLowerCase().includes(filters.name.toLowerCase())
+          );
+        }
+      }
+
+      return {
+        success: true,
+        bookings: bookings
+      };
+    } catch (error) {
+      console.error('שגיאה בשליפת הזמנות:', error);
+      return {
+        success: false,
+        message: 'שגיאה בשליפת הזמנות'
+      };
+    }
   }
 
-  // הוספת הזמנה חדשה
-  addBooking(bookingData) {
-    const bookings = this.getBookings();
-    
-    // בדיקת חפיפה עם הזמנות קיימות
-    const isOverlapping = bookings.some(existingBooking => 
-      existingBooking.apartment === bookingData.apartment &&
-      existingBooking.date === bookingData.date &&
-      this.isTimeOverlapping(
-        existingBooking.startTime, 
-        existingBooking.endTime, 
-        bookingData.startTime, 
-        bookingData.endTime
-      )
-    );
+  // עדכון הזמנה
+  async updateBooking(bookingId, updatedData) {
+    try {
+      const bookingRef = ref(db, `bookings/${bookingId}`);
 
-    if (isOverlapping) {
+      // בדיקת חפיפה עם הזמנות אחרות
+      const overlappingQuery = query(
+        this.bookingsRef, 
+        orderByChild('apartment'), 
+        equalTo(updatedData.apartment)
+      );
+
+      const snapshot = await get(overlappingQuery);
+      const existingBookings = snapshot.val() || {};
+
+      // בדיקת חפיפת זמנים תוך התעלמות מההזמנה הנוכחית
+      const isOverlapping = Object.entries(existingBookings).some(([key, booking]) => 
+        key !== bookingId &&
+        booking.date === updatedData.date &&
+        this.isTimeOverlapping(
+          booking.startTime, 
+          booking.endTime, 
+          updatedData.startTime, 
+          updatedData.endTime
+        )
+      );
+
+      if (isOverlapping) {
+        return {
+          success: false,
+          message: 'קיימת הזמנה חופפת עבור דירה זו בתאריך ובשעות אלה'
+        };
+      }
+
+      // עדכון ההזמנה
+      const updatedBooking = {
+        ...updatedData,
+        id: bookingId,
+        updatedAt: new Date().toISOString()
+      };
+
+      await set(bookingRef, updatedBooking);
+
+      return {
+        success: true,
+        booking: updatedBooking
+      };
+    } catch (error) {
+      console.error('שגיאה בעדכון הזמנה:', error);
       return {
         success: false,
-        message: 'קיימת הזמנה חופפת עבור דירה זו בתאריך ובשעות אלה'
+        message: 'שגיאה בעדכון הזמנה'
       };
     }
-
-    // הוספת מזהה ייחודי להזמנה
-    const newBooking = {
-      ...bookingData,
-      id: uuidv4()
-    };
-
-    bookings.push(newBooking);
-    localStorage.setItem('bookings', JSON.stringify(bookings));
-
-    return {
-      success: true,
-      booking: newBooking
-    };
-  }
-
-  // עדכון הזמנה קיימת
-  updateBooking(bookingId, updatedData) {
-    const bookings = this.getBookings();
-    const bookingIndex = bookings.findIndex(b => b.id === bookingId);
-
-    if (bookingIndex === -1) {
-      return {
-        success: false,
-        message: 'הזמנה לא נמצאה'
-      };
-    }
-
-    // בדיקת חפיפה עם הזמנות אחרות
-    const isOverlapping = bookings.some((existingBooking, index) => 
-      index !== bookingIndex && 
-      existingBooking.apartment === updatedData.apartment &&
-      existingBooking.date === updatedData.date &&
-      this.isTimeOverlapping(
-        existingBooking.startTime, 
-        existingBooking.endTime, 
-        updatedData.startTime, 
-        updatedData.endTime
-      )
-    );
-
-    if (isOverlapping) {
-      return {
-        success: false,
-        message: 'קיימת הזמנה חופפת עבור דירה זו בתאריך ובשעות אלה'
-      };
-    }
-
-    // עדכון ההזמנה
-    const updatedBooking = {
-      ...bookings[bookingIndex],
-      ...updatedData
-    };
-
-    bookings[bookingIndex] = updatedBooking;
-    localStorage.setItem('bookings', JSON.stringify(bookings));
-
-    return {
-      success: true,
-      booking: updatedBooking
-    };
   }
 
   // מחיקת הזמנה
-  deleteBooking(bookingId) {
-    const bookings = this.getBookings();
-    const filteredBookings = bookings.filter(b => b.id !== bookingId);
+  async deleteBooking(bookingId) {
+    try {
+      const bookingRef = ref(db, `bookings/${bookingId}`);
+      await remove(bookingRef);
 
-    if (bookings.length === filteredBookings.length) {
+      return {
+        success: true
+      };
+    } catch (error) {
+      console.error('שגיאה במחיקת הזמנה:', error);
       return {
         success: false,
-        message: 'הזמנה לא נמצאה'
+        message: 'שגיאה במחיקת הזמנה'
       };
     }
-
-    localStorage.setItem('bookings', JSON.stringify(filteredBookings));
-
-    return {
-      success: true
-    };
   }
 
-  // בדיקת חפיפת זמנים
+  // בדיקת חפיפת זמנים פנימית
   isTimeOverlapping(existingStart, existingEnd, newStart, newEnd) {
-    // המרת שעות למספרים לצורך השוואה
     const existingStartNum = parseInt(existingStart);
     const existingEndNum = parseInt(existingEnd);
     const newStartNum = parseInt(newStart);
     const newEndNum = parseInt(newEnd);
 
-    // בדיקת חפיפה
     return !(newEndNum <= existingStartNum || newStartNum >= existingEndNum);
-  }
-
-  // סינון הזמנות לפי קריטריונים
-  filterBookings(filters) {
-    let bookings = this.getBookings();
-
-    if (filters.date) {
-      bookings = bookings.filter(b => b.date === filters.date);
-    }
-
-    if (filters.apartment) {
-      bookings = bookings.filter(b => b.apartment === filters.apartment);
-    }
-
-    if (filters.name) {
-      bookings = bookings.filter(b => 
-        b.name.toLowerCase().includes(filters.name.toLowerCase())
-      );
-    }
-
-    return bookings;
   }
 }
 
-// יצירת סינגלטון
 export default new BookingService();
