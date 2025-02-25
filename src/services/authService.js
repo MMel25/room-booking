@@ -7,17 +7,24 @@ import {
 import { 
   signInWithEmailAndPassword, 
   signOut, 
-  createUserWithEmailAndPassword 
+  createUserWithEmailAndPassword,
+  getAuth
 } from "firebase/auth";
 import { db } from '../firebase';
 
 class AuthService {
+  constructor() {
+    this.auth = getAuth();
+  }
+
   // התחברות למנהל
   async login(email, password) {
     try {
       // אימות מול Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
-        // הוסף את אובייקט האימות מ-Firebase כאן
+        this.auth,
+        email,
+        password
       );
       
       // בדיקה אם המשתמש הוא מנהל
@@ -26,13 +33,12 @@ class AuthService {
       
       if (!snapshot.exists()) {
         // התנתקות אם המשתמש אינו מנהל
-        await signOut(auth);
+        await signOut(this.auth);
         return {
           success: false,
           message: 'אין הרשאת מנהל'
         };
       }
-
       return {
         success: true,
         user: userCredential.user
@@ -49,7 +55,9 @@ class AuthService {
   async createAdminUser(email, password, adminDetails) {
     try {
       const userCredential = await createUserWithEmailAndPassword(
-        // הוסף את אובייקט האימות מ-Firebase כאן
+        this.auth,
+        email,
+        password
       );
       
       // שמירת פרטי מנהל במסד הנתונים
@@ -59,7 +67,6 @@ class AuthService {
         ...adminDetails,
         createdAt: new Date().toISOString()
       });
-
       return {
         success: true,
         user: userCredential.user
@@ -75,9 +82,7 @@ class AuthService {
   // התנתקות
   async logout() {
     try {
-      await signOut(
-        // הוסף את אובייקט האימות מ-Firebase כאן
-      );
+      await signOut(this.auth);
       return { success: true };
     } catch (error) {
       return { 
@@ -98,20 +103,17 @@ class AuthService {
       'auth/weak-password': 'הסיסמה חלשה מדי',
       'default': 'אירעה שגיאה. אנא נסה שוב'
     };
-
     return errorMessages[errorCode] || errorMessages['default'];
   }
 
   // בדיקת סטטוס התחברות
   isAuthenticated() {
-    // הוסף את אובייקט האימות מ-Firebase כאן והחזר את סטטוס ההתחברות
-    return false; // החלף זאת בבדיקה האמיתית
+    return !!this.auth.currentUser;
   }
 
   // שליפת המשתמש הנוכחי
   getCurrentUser() {
-    // הוסף את אובייקט האימות מ-Firebase כאן
-    return null; // החלף זאת בהחזרת המשתמש האמיתי
+    return this.auth.currentUser;
   }
 }
 
