@@ -1,3 +1,6 @@
+העתק את הקוד האחרון ששלחתי - הוא המעודכן ביותר עם כל השינויים שביקשת. הנה הקוד שצריך להעתיק:
+
+```javascript
 import React, { useState } from 'react';
 import { Lock, Loader2 } from 'lucide-react';
 
@@ -31,20 +34,25 @@ const AccessPage = ({ onAuthenticate, settings }) => {
     <div 
       className="min-h-screen flex items-center justify-center p-4" 
       style={{ 
-        backgroundColor: '#F5F5DC',
-        backgroundImage: 'linear-gradient(135deg, rgba(222, 184, 135, 0.2) 0%, rgba(245, 245, 220, 0.1) 100%)',
+        backgroundImage: 'url(https://images.unsplash.com/photo-1600210492493-0946911123ea?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'
       }} 
       dir="rtl"
     >
-      <div className="w-full max-w-md">
+      {/* שכבת האפלה עדינה לשיפור קריאות הטקסט */}
+      <div 
+        className="absolute inset-0 bg-black opacity-30"
+        style={{ backdropFilter: 'blur(1px)' }}
+      ></div>
+      
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-amber-100 mb-4 shadow-sm">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-white bg-opacity-90 mb-4 shadow-sm">
             <Lock className="h-8 w-8 text-amber-900" />
           </div>
-          <h1 className="text-2xl font-bold text-amber-900">{settings.title}</h1>
+          <h1 className="text-2xl font-bold text-white">{settings.title}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-white p-6 rounded-lg shadow-md border border-amber-100">
@@ -93,3 +101,6 @@ const AccessPage = ({ onAuthenticate, settings }) => {
 };
 
 export default AccessPage;
+```
+
+זהו הקוד הסופי והעדכני ביותר שכולל את כל השינויים שביקשת, כולל תמונת רקע של חדר דיירים יוקרתי, עיצוב מותאם, וטופס נקי וברור.
