@@ -1,8 +1,19 @@
-// התחלת הקומפוננטה App נשארת אותו דבר...
+import React, { useState, useEffect } from 'react';
+import { ref, get, set } from 'firebase/database';
+import { 
+  BrowserRouter as Router, 
+  Routes, 
+  Route, 
+  Navigate
+} from 'react-router-dom';
+import { db } from './firebase';
+import AccessPage from './components/AccessPage';
+import CalendarView from './components/CalendarView';
+import BookingForm from './components/BookingForm';
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);  // הוספנו סטייט חדש
+  const [isInitialized, setIsInitialized] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -49,14 +60,26 @@ const App = () => {
       } catch (error) {
         console.error('Error during initialization:', error);
       } finally {
-        setIsInitialized(true);  // סימון שהאתחול הסתיים
+        setIsInitialized(true);
       }
     };
 
     initialize();
-  }, []);  // רץ פעם אחת בטעינה
+  }, []);
 
-  // שאר הפונקציות נשארות אותו דבר...
+  // טיפול בהתחברות
+  const handleAuthenticate = (isAdmin) => {
+    setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userRole', isAdmin ? 'admin' : 'user');
+  };
+
+  // טיפול בהתנתקות
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
+  };
 
   // אם האתחול עדיין לא הסתיים, נציג מסך טעינה
   if (!isInitialized) {
@@ -128,7 +151,8 @@ const App = () => {
           } 
         />
 
-        {/* ... שאר הנתיבים נשארים אותו דבר ... */}
+        {/* הפניה דיפולטיבית */}
+        <Route path="*" element={<Navigate to="/access" replace />} />
       </Routes>
     </Router>
   );
