@@ -32,7 +32,7 @@ const AccessPage = ({ onAuthenticate, settings }) => {
     <div 
       className="min-h-screen flex items-center justify-center p-4" 
       style={{ 
-        backgroundImage: 'url(https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)',
+        backgroundImage: 'url(https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'
@@ -57,9 +57,6 @@ const AccessPage = ({ onAuthenticate, settings }) => {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label htmlFor="accessCode" className="block text-sm font-medium text-amber-900 mb-1">
-                  קוד גישה
-                </label>
                 <div className="relative">
                   <input
                     id="accessCode"
