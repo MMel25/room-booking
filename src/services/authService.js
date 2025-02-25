@@ -9,7 +9,7 @@ import {
   signOut, 
   createUserWithEmailAndPassword 
 } from "firebase/auth";
-import { db } from './firebase';
+import { db } from '../firebase';
 
 class AuthService {
   // התחברות למנהל
