@@ -154,4 +154,35 @@ const AdminDashboard = () => {
                   <h3 className="text-lg font-semibold">הזמנות היום</h3>
                   <p className="text-2xl">
                     {bookings.filter(b => 
-                      b.date === new Date().toISO
+                      b.date === new Date().toISOString().split('T')[0]
+                    ).length}
+                  </p>
+                </div>
+                <div className="bg-amber-50 p-4 rounded">
+                  <h3 className="text-lg font-semibold">הזמנות מחר</h3>
+                  <p className="text-2xl">
+                    {bookings.filter(b => 
+                      b.date === new Date(Date.now() + 86400000).toISOString().split('T')[0]  
+                    ).length}
+                  </p>
+                </div>
+                <div className="bg-amber-50 p-4 rounded">
+                  <h3 className="text-lg font-semibold">דירות</h3>
+                  <p className="text-2xl">{apartments.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+    }
+  };
+
+  return (
+    <div className="flex h-screen">
+      {renderSidebar()}
+      <div className="flex-1">{renderContent()}</div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
