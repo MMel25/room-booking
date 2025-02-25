@@ -11,22 +11,24 @@ import { db } from './firebase';
 import AccessPage from './components/AccessPage';
 import CalendarView from './components/CalendarView';
 import BookingForm from './components/BookingForm';
-import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import BookingManagement from './components/BookingManagement';
 import SystemSettings from './components/SystemSettings';
 
 // קומפוננטת הגנה על נתיבים
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ requireAdmin, children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // בדיקת מצב התחברות
     const checkAuth = async () => {
       const storedAuth = localStorage.getItem('isAuthenticated');
+      const storedRole = localStorage.getItem('userRole');
+      
       setIsAuthenticated(storedAuth === 'true');
+      setIsAdmin(storedRole === 'admin');
       setIsLoading(false);
     };
 
@@ -45,11 +47,16 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/access" replace />;
   }
 
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -57,11 +64,11 @@ const App = () => {
     title: 'חדר דיירים בן חור 4',
     maxBookingHours: 12,
     accessCode: '4334',
-    regulations: 'יש החדר מוקצה לשימוש פרטי של דיירי הבניין בלבד. החדר יוקצה לרשותך בשיטת הראשון להזמין ובשעות ההזמנה בלבד. חובה להחזיר את החדר נקי ומסודר, חלונות ותריס יציאה סגורים, מזגן ואורות כבויים, דלת נעולה. בשימוש החדר עבור מעל 10 אנשים, הכניסה/יציאה מהגינה האחורית בלבד! חל איסור מוחלט על הקמת רעש שעלול להפריע למנוחת השכנים, בפרט בשעות הצהריים או הערב המאוחרות/הלילה. חובה לשמור על הציוד בחדר, נזקים יהיו באחריות המזמינים בלבד.'
+    adminCode: '3266',
+    regulations: 'יש החדר מוקצה לשימוש פרטי של דיירי הבניין בלבד...'
   });
   const [bookings, setBookings] = useState([]);
 
-  // קריאת הגדרות מ-Firebase כשהאפליקציה עולה
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -71,7 +78,6 @@ const App = () => {
         if (snapshot.exists()) {
           setSettings(snapshot.val());
         } else {
-          // אם אין הגדרות, ניצור הגדרות ברירת מחדל
           await set(ref(db, 'settings'), settings);
         }
       } catch (error) {
@@ -101,16 +107,28 @@ const App = () => {
     fetchBookings();
   }, []);
 
-  // הגדרת מצב מחובר
+  // הגדרת מצב מחובר רגיל
   const handleAuthenticate = () => {
     setIsAuthenticated(true);
+    setUserRole('user');
     localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userRole', 'user');
+  };
+
+  // הגדרת מצב מחובר כמנהל
+  const handleAdminAuthenticate = () => {
+    setIsAuthenticated(true);
+    setUserRole('admin');
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userRole', 'admin');
   };
 
   // התנתקות
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setUserRole(null);
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
   };
 
   return (
@@ -121,7 +139,8 @@ const App = () => {
           path="/access" 
           element={
             <AccessPage 
-              onAuthenticate={handleAuthenticate} 
+              onAuthenticate={handleAuthenticate}
+              onAdminAuthenticate={handleAdminAuthenticate}
               settings={settings}
             />
           } 
@@ -141,6 +160,7 @@ const App = () => {
                     setShowBookingForm(true);
                   }}
                   settings={settings}
+                  onLogout={handleLogout}
                 />
                 
                 {showBookingForm && (
@@ -151,11 +171,8 @@ const App = () => {
                     settings={settings}
                     onSubmit={async (bookingData) => {
                       try {
-                        // שמירת ההזמנה החדשה ב-Firebase
                         const newBookingRef = ref(db, `bookings/${Date.now()}`);
                         await set(newBookingRef, bookingData);
-                        
-                        // עדכון הרשימה המקומית
                         setBookings([...bookings, { id: Date.now(), ...bookingData }]);
                         setShowBookingForm(false);
                       } catch (error) {
@@ -170,15 +187,11 @@ const App = () => {
           } 
         />
 
-        {/* נתיבי מנהל */}
-        <Route 
-          path="/admin/login" 
-          element={<AdminLogin onLogin={handleAuthenticate} />} 
-        />
+        {/* נתיבי מנהל - מוגנים עם דרישת מנהל */}
         <Route 
           path="/admin/dashboard" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireAdmin>
               <AdminDashboard onLogout={handleLogout} />
             </ProtectedRoute>
           } 
@@ -186,7 +199,7 @@ const App = () => {
         <Route 
           path="/admin/bookings" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireAdmin>
               <BookingManagement onLogout={handleLogout} />
             </ProtectedRoute>
           } 
@@ -194,7 +207,7 @@ const App = () => {
         <Route 
           path="/admin/settings" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireAdmin>
               <SystemSettings onLogout={handleLogout} />
             </ProtectedRoute>
           } 
