@@ -16,16 +16,23 @@ import BookingManagement from './components/BookingManagement';
 import SystemSettings from './components/SystemSettings';
 
 // קומפוננטת הגנה על נתיבים
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, requireAdmin }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // נקה את האימות בטעינה הראשונית
-    localStorage.removeItem('isAuthenticated');
-    setIsAuthenticated(false);
-    setIsLoading(false);
+    const checkAuth = async () => {
+      const storedAuth = localStorage.getItem('isAuthenticated');
+      const storedRole = localStorage.getItem('userRole');
+      
+      setIsAuthenticated(storedAuth === 'true');
+      setIsAdmin(storedRole === 'admin');
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
   if (isLoading) {
@@ -40,6 +47,10 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/access" replace />;
   }
 
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 };
 
@@ -52,16 +63,20 @@ const App = () => {
     title: 'חדר דיירים בן חור 4',
     maxBookingHours: 12,
     accessCode: '4334',
+    adminCode: '3266',
     regulations: 'יש החדר מוקצה לשימוש פרטי של דיירי הבניין בלבד...'
   });
   const [bookings, setBookings] = useState([]);
 
-  // קריאת הגדרות מ-Firebase כשהאפליקציה עולה
+  // ניקוי אימות בטעינה ראשונית
   useEffect(() => {
-    // נקה את האימות בטעינה הראשונית
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
     setIsAuthenticated(false);
+  }, []);
 
+  // קריאת הגדרות וההזמנות מ-Firebase
+  useEffect(() => {
     const fetchSettings = async () => {
       try {
         const settingsRef = ref(db, 'settings');
@@ -99,16 +114,18 @@ const App = () => {
     fetchBookings();
   }, []);
 
-  // הגדרת מצב מחובר
-  const handleAuthenticate = () => {
+  // טיפול בהתחברות
+  const handleAuthenticate = (isAdmin) => {
     setIsAuthenticated(true);
     localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userRole', isAdmin ? 'admin' : 'user');
   };
 
-  // התנתקות
+  // טיפול בהתנתקות
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
   };
 
   return (
@@ -118,10 +135,14 @@ const App = () => {
         <Route 
           path="/access" 
           element={
-            <AccessPage 
-              onAuthenticate={handleAuthenticate} 
-              settings={settings}
-            />
+            isAuthenticated ? (
+              <Navigate to="/" replace />
+            ) : (
+              <AccessPage 
+                onAuthenticate={handleAuthenticate} 
+                settings={settings}
+              />
+            )
           } 
         />
 
@@ -139,6 +160,7 @@ const App = () => {
                     setShowBookingForm(true);
                   }}
                   settings={settings}
+                  onLogout={handleLogout}
                 />
                 
                 {showBookingForm && (
@@ -165,11 +187,11 @@ const App = () => {
           } 
         />
 
-        {/* נתיבי מנהל */}
+        {/* נתיבי מנהל - מוגנים ודורשים הרשאת מנהל */}
         <Route 
           path="/admin/dashboard" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireAdmin>
               <AdminDashboard onLogout={handleLogout} />
             </ProtectedRoute>
           } 
@@ -177,7 +199,7 @@ const App = () => {
         <Route 
           path="/admin/bookings" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireAdmin>
               <BookingManagement onLogout={handleLogout} />
             </ProtectedRoute>
           } 
@@ -185,7 +207,7 @@ const App = () => {
         <Route 
           path="/admin/settings" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requireAdmin>
               <SystemSettings onLogout={handleLogout} />
             </ProtectedRoute>
           } 
