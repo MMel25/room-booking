@@ -44,7 +44,8 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     });
   };
 
-  // עדכון החלקה אופקית לתמיכה בניווט בין חודשים
+  // עדכון החלקה אופקית לתמיכה בניווט בין חודשים 
+  // במצב עברית RTL - החלקה שמאלה = קדימה, החלקה ימינה = אחורה
   const handleTouchStart = useCallback((e) => {
     // וודא שזה רק מגע יחיד
     if (e.touches.length === 1) {
@@ -62,10 +63,10 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
       if (Math.abs(touchDiff) > 50) {
         const newDate = new Date(currentDate);
         if (touchDiff > 0) {
-          // החלקה שמאלה - חודש קדימה (הפוך כפי שביקשת)
+          // החלקה שמאלה - קדימה בזמן ב-RTL
           newDate.setMonth(newDate.getMonth() + 1);
         } else {
-          // החלקה ימינה - חודש אחורה (הפוך כפי שביקשת)
+          // החלקה ימינה - אחורה בזמן ב-RTL
           newDate.setMonth(newDate.getMonth() - 1);
         }
         setCurrentDate(newDate);
@@ -78,19 +79,22 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
 
   // ניווט מהיר בין חודשים
   const MonthPicker = () => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    
+    // רק החודשים העתידיים של השנה הנוכחית
     const months = Array.from({ length: 12 }, (_, i) => {
       const date = new Date();
       date.setMonth(i);
       return {
         name: new Intl.DateTimeFormat('he-IL', { month: 'long' }).format(date),
-        value: i
+        value: i,
+        isFuture: i >= currentMonth || currentDate.getFullYear() > currentYear
       };
     });
 
-    const years = Array.from({ length: 5 }, (_, i) => {
-      const year = new Date().getFullYear() - 2 + i;
-      return year;
-    });
+    // רק השנה הנוכחית והבאה
+    const years = [currentYear, currentYear + 1];
 
     return (
       <div 
@@ -100,7 +104,7 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
       >
         <div className="mb-4">
           <div className="font-bold mb-2 text-amber-900">שנה:</div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {years.map(year => (
               <button
                 key={year}
@@ -127,15 +131,19 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
               <button
                 key={month.value}
                 className={`px-3 py-2 rounded text-center ${
-                  currentDate.getMonth() === month.value 
+                  !month.isFuture && currentDate.getFullYear() === currentYear ? 'opacity-50 cursor-not-allowed' : 
+                  currentDate.getMonth() === month.value && currentDate.getFullYear() === year
                     ? 'bg-amber-100 text-amber-900' 
                     : 'hover:bg-amber-50'
                 }`}
+                disabled={!month.isFuture && currentDate.getFullYear() === currentYear}
                 onClick={() => {
-                  const newDate = new Date(currentDate);
-                  newDate.setMonth(month.value);
-                  setCurrentDate(newDate);
-                  setShowMonthPicker(false);
+                  if (month.isFuture || currentDate.getFullYear() > currentYear) {
+                    const newDate = new Date(currentDate);
+                    newDate.setMonth(month.value);
+                    setCurrentDate(newDate);
+                    setShowMonthPicker(false);
+                  }
                 }}
               >
                 {month.name}
@@ -190,15 +198,13 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
 
     return (
       <div 
-        className="grid grid-cols-7 gap-1 touch-pan-x"
-        // עדכון תמיכה בגלילה אופקית
+        className="grid grid-cols-7 gap-1"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         style={{ 
-          touchAction: 'pan-x', 
+          touchAction: 'pan-y', 
           userSelect: 'none',
-          WebkitUserSelect: 'none',
-          overflowX: 'auto'
+          WebkitUserSelect: 'none'
         }}
       >
         {['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map(day => (
@@ -244,10 +250,8 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
     <div 
       className="h-[600px] overflow-y-auto bg-white rounded-lg" 
       dir="rtl"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
       style={{ 
-        touchAction: 'pan-x',
+        touchAction: 'auto',
         userSelect: 'none',
         WebkitUserSelect: 'none'
       }}
@@ -309,9 +313,10 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
               <button 
                 className={`px-4 py-2 rounded transition-colors ${
                   viewMode === 'month' 
-                    ? 'bg-amber-100 text-amber-900' 
+                    ? 'text-white' 
                     : 'bg-white text-amber-900 border border-amber-100'
                 }`}
+                style={viewMode === 'month' ? { backgroundColor: '#DEB887' } : {}}
                 onClick={() => setViewMode('month')}
               >
                 חודשי
@@ -319,9 +324,10 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
               <button 
                 className={`px-4 py-2 rounded transition-colors ${
                   viewMode === 'day' 
-                    ? 'bg-amber-100 text-amber-900' 
+                    ? 'text-white' 
                     : 'bg-white text-amber-900 border border-amber-100'
                 }`}
+                style={viewMode === 'day' ? { backgroundColor: '#DEB887' } : {}}
                 onClick={() => setViewMode('day')}
               >
                 יומי
@@ -342,9 +348,9 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
                 onClick={() => {
                   const newDate = new Date(currentDate);
                   if (viewMode === 'day') {
-                    newDate.setDate(newDate.getDate() + 1); // הפוך - ימין הולך קדימה
+                    newDate.setDate(newDate.getDate() - 1); // חץ ימינה מזיז אחורה בזמן ב-RTL
                   } else if (viewMode === 'month') {
-                    newDate.setMonth(newDate.getMonth() + 1); // הפוך - ימין הולך קדימה
+                    newDate.setMonth(newDate.getMonth() - 1); // חץ ימינה מזיז אחורה בזמן ב-RTL
                   }
                   setCurrentDate(newDate);
                 }}
@@ -365,9 +371,9 @@ const CalendarView = ({ bookings = [], onTimeSelect, onQuickBooking, settings })
                 onClick={() => {
                   const newDate = new Date(currentDate);
                   if (viewMode === 'day') {
-                    newDate.setDate(newDate.getDate() - 1); // הפוך - שמאל הולך אחורה
+                    newDate.setDate(newDate.getDate() + 1); // חץ שמאלה מזיז קדימה בזמן ב-RTL
                   } else if (viewMode === 'month') {
-                    newDate.setMonth(newDate.getMonth() - 1); // הפוך - שמאל הולך אחורה
+                    newDate.setMonth(newDate.getMonth() + 1); // חץ שמאלה מזיז קדימה בזמן ב-RTL
                   }
                   setCurrentDate(newDate);
                 }}
