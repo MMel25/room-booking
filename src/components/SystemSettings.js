@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Settings, Key, Clock, FileText, Type } from 'lucide-react';
+import SettingsService from '../services/settingsService';
 
-const SystemSettings = ({ initialSettings, onUpdateSettings }) => {
+const SystemSettings = ({ initialSettings = {}, onUpdateSettings }) => {
   // מצב ראשוני של טופס ההגדרות
   const [settings, setSettings] = useState({
-    title: 'חדר דיירים',
-    accessCode: '',
-    adminCode: '',
-    maxBookingHours: 12,
-    regulations: ''
+    title: initialSettings.title || 'חדר דיירים',
+    accessCode: initialSettings.accessCode || '',
+    adminCode: initialSettings.adminCode || '',
+    maxBookingHours: initialSettings.maxBookingHours || 12,
+    regulations: initialSettings.regulations || ''
   });
   
   const [confirmAccessCode, setConfirmAccessCode] = useState('');
@@ -28,6 +29,10 @@ const SystemSettings = ({ initialSettings, onUpdateSettings }) => {
         maxBookingHours: initialSettings.maxBookingHours || 12,
         regulations: initialSettings.regulations || ''
       });
+      
+      // אתחול שדות האימות
+      setConfirmAccessCode(initialSettings.accessCode || '');
+      setConfirmAdminCode(initialSettings.adminCode || '');
     }
   }, [initialSettings]);
 
@@ -73,10 +78,22 @@ const SystemSettings = ({ initialSettings, onUpdateSettings }) => {
     }
     
     setIsSaving(true);
+    setSaveSuccess(false);
+    
     try {
-      // שליחת ההגדרות המעודכנות
-      await onUpdateSettings(settings);
-      setSaveSuccess(true);
+      // שמירה ישירה לפיירבייס אם לא הועבר האובייקט onUpdateSettings
+      if (!onUpdateSettings) {
+        const result = await SettingsService.updateSystemSettings(settings);
+        if (result.success) {
+          setSaveSuccess(true);
+        } else {
+          setErrors({ submit: result.message || 'שגיאה בשמירת ההגדרות' });
+        }
+      } else {
+        // שליחת ההגדרות המעודכנות דרך פרופ
+        onUpdateSettings(settings);
+        setSaveSuccess(true);
+      }
       
       // איפוס ההודעה אחרי 3 שניות
       setTimeout(() => {
