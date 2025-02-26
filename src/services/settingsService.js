@@ -3,9 +3,7 @@ import {
   ref, 
   get, 
   set, 
-  update,
-  push,
-  remove
+  update
 } from "firebase/database";
 import { db } from '../firebase';
 
@@ -20,12 +18,13 @@ class SettingsService {
       const snapshot = await get(this.settingsRef);
       
       if (snapshot.exists()) {
+        console.log('Loaded settings from Firebase');
         return {
           success: true,
           settings: snapshot.val()
         };
       } else {
-        // יצירת הגדרות ברירת מחדל אם לא קיימות
+        console.log('No settings found, creating defaults');
         const defaultSettings = this.getDefaultSettings();
         await set(this.settingsRef, defaultSettings);
         
@@ -35,7 +34,7 @@ class SettingsService {
         };
       }
     } catch (error) {
-      console.error('שגיאה בשליפת הגדרות:', error);
+      console.error('Error loading settings:', error);
       return {
         success: false,
         message: 'שגיאה בשליפת הגדרות',
@@ -44,14 +43,14 @@ class SettingsService {
     }
   }
 
-  // הגדרות ברירת מחדל
+  // הגדרות ברירת מחדל - עם ערכים זמניים בלבד
   getDefaultSettings() {
     return {
-      title: 'חדר דיירים בן חור 4',
-      accessCode: '4334',
-      adminCode: '3266',
+      title: 'חדר דיירים',
+      accessCode: '0000',        // קוד זמני - יש לעדכן בממשק הניהול
+      adminCode: '1234',         // קוד זמני - יש לעדכן בממשק הניהול
       maxBookingHours: 12,
-      regulations: 'החדר מוקצה לשימוש פרטי של דיירי הבניין בלבד...',
+      regulations: 'יש לשמור על ניקיון החדר ולהשאיר אותו במצב תקין.',
       updatedAt: new Date().toISOString()
     };
   }
@@ -59,23 +58,32 @@ class SettingsService {
   // עדכון הגדרות מערכת
   async updateSystemSettings(newSettings) {
     try {
+      console.log('Updating settings');
+      
+      // וידוא שהשדות הם מהסוג הנכון
       const updatedSettings = {
-        ...newSettings,
+        title: newSettings.title || 'חדר דיירים',
+        accessCode: newSettings.accessCode || '',
+        adminCode: newSettings.adminCode || '',
+        maxBookingHours: parseInt(newSettings.maxBookingHours) || 12,
+        regulations: newSettings.regulations || '',
         updatedAt: new Date().toISOString()
       };
       
+      // שמירה לפיירבייס
       await set(this.settingsRef, updatedSettings);
-
+      
+      console.log('Settings updated successfully');
       return {
         success: true,
         settings: updatedSettings
       };
     } catch (error) {
-      console.error('שגיאה בעדכון הגדרות:', error);
+      console.error('Error updating settings:', error);
       return {
         success: false,
         message: 'שגיאה בעדכון הגדרות',
-        error
+        error: error.message
       };
     }
   }
@@ -87,6 +95,7 @@ class SettingsService {
       updates[field] = value;
       updates['updatedAt'] = new Date().toISOString();
       
+      console.log(`Updating setting ${field}`);
       await update(this.settingsRef, updates);
       
       return {
@@ -95,11 +104,11 @@ class SettingsService {
         value
       };
     } catch (error) {
-      console.error(`שגיאה בעדכון שדה ${field}:`, error);
+      console.error(`Error updating setting ${field}:`, error);
       return {
         success: false,
         message: `שגיאה בעדכון שדה ${field}`,
-        error
+        error: error.message
       };
     }
   }
