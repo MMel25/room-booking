@@ -14,43 +14,83 @@ export const AdminAuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // בדיקת מצב התחברות וטעינת פרטי מנהל
+  // בדיקת מצב התחברות מקומי בעת טעינה
   useEffect(() => {
+    const checkLocalAuth = () => {
+      const localAuth = localStorage.getItem('isAuthenticated') === 'true';
+      const isAdminUser = localStorage.getItem('userRole') === 'admin';
+      
+      // אם יש אימות מקומי של מנהל, נגדיר משתמש בסיסי
+      if (localAuth && isAdminUser) {
+        setUser({ 
+          uid: 'local-admin',
+          email: 'admin@local',
+          isLocalAuth: true 
+        });
+        setIsAuthenticated(true);
+      }
+      
+      setIsLoading(false);
+    };
+
+    // בדיקת אימות מקומי כשאין אימות Firebase
+    if (!auth.currentUser) {
+      checkLocalAuth();
+    }
+
+    // בדיקת מצב אימות Firebase
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
           // בדיקה אם המשתמש הוא מנהל
           const adminRef = ref(db, `admins/${firebaseUser.uid}`);
           const snapshot = await get(adminRef);
-
           if (snapshot.exists()) {
             setUser(firebaseUser);
             setIsAuthenticated(true);
           } else {
             // משתמש לא מנהל - יש להתנתק
             await AuthService.logout();
-            setUser(null);
-            setIsAuthenticated(false);
+            
+            // בדיקה אם יש אימות מקומי אחרי התנתקות מ-Firebase
+            checkLocalAuth();
           }
         } catch (error) {
           console.error('שגיאה בבדיקת הרשאות מנהל:', error);
           setUser(null);
           setIsAuthenticated(false);
+          
+          // בדיקה אם יש אימות מקומי במקרה של שגיאה
+          checkLocalAuth();
         }
       } else {
-        setUser(null);
-        setIsAuthenticated(false);
+        // אין משתמש Firebase - בדיקת אימות מקומי
+        checkLocalAuth();
       }
-      
-      setIsLoading(false);
     });
-
+    
     // ניקוי המנוי בעת הסרת הקומפוננטה
     return () => unsubscribe();
   }, []);
 
   // פונקציית התחברות
   const login = async (email, password) => {
+    // אם יש אימות מקומי, נחזיר הצלחה ישירות
+    const localAuth = localStorage.getItem('isAuthenticated') === 'true';
+    const isAdminUser = localStorage.getItem('userRole') === 'admin';
+    
+    if (localAuth && isAdminUser) {
+      return { 
+        success: true,
+        user: {
+          uid: 'local-admin',
+          email: 'admin@local',
+          isLocalAuth: true
+        }
+      };
+    }
+    
+    // אחרת ננסה להתחבר דרך Firebase
     const result = await AuthService.login(email, password);
     
     if (result.success) {
@@ -63,7 +103,19 @@ export const AdminAuthProvider = ({ children }) => {
 
   // פונקציית התנתקות
   const logout = async () => {
+    // אם זה אימות מקומי, מספיק לנקות את האחסון המקומי
+    if (user?.isLocalAuth) {
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('userRole');
+      setUser(null);
+      setIsAuthenticated(false);
+      return;
+    }
+    
+    // אחרת יש להתנתק גם מ-Firebase
     await AuthService.logout();
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
     setUser(null);
     setIsAuthenticated(false);
   };
