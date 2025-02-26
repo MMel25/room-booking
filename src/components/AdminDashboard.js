@@ -7,6 +7,7 @@ import { Home, Settings, Calendar, LogOut, User, Phone, ClipboardList } from 'lu
 import BookingManagement from './BookingManagement';
 import SystemSettings from './SystemSettings';
 import BookingForm from './BookingForm';
+import CalendarView from './CalendarView';
 import BookingService from '../services/bookingService';
 import SettingsService from '../services/settingsService';
 
@@ -28,6 +29,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState(null);
+  const [selectedDateForBooking, setSelectedDateForBooking] = useState(null);
 
   // טעינת נתונים ראשונית אם לא התקבלו מלמעלה
   useEffect(() => {
@@ -60,7 +62,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     fetchData();
   }, [initialBookings, settings]);
 
-  // פונקציות ניהול הזמנות
+  // פונקציות ניהול הזמנות (נשארו כמו קודם)
   const handleDeleteBooking = async (bookingToDelete) => {
     if (!window.confirm('האם אתה בטוח שברצונך למחוק הזמנה זו?')) {
       return;
@@ -151,54 +153,20 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     navigate('/access');
   };
 
-  // נתונים סטטיסטיים לדשבורד
-  const getStatistics = () => {
-    const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
-    
-    // הזמנות היום
-    const todayBookings = bookings.filter(b => b.date === todayString);
-    
-    // הזמנות החודש
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    const monthBookings = bookings.filter(b => {
-      const bookingDate = new Date(b.date);
-      return bookingDate.getMonth() === currentMonth && 
-             bookingDate.getFullYear() === currentYear;
-    });
-    
-    // הזמנות עתידיות
-    const futureBookings = bookings.filter(b => b.date >= todayString);
-    
-    // הזמנות קרובות ממוינות לפי תאריך
-    const upcomingBookings = [...futureBookings]
-      .sort((a, b) => {
-        // מיון לפי תאריך
-        if (a.date !== b.date) {
-          return a.date.localeCompare(b.date);
-        }
-        // אם התאריך זהה, מיון לפי שעת התחלה
-        return parseInt(a.startTime) - parseInt(b.startTime);
-      })
-      .slice(0, 5); // 5 הזמנות הקרובות ביותר
-    
-    return {
-      todayCount: todayBookings.length,
-      monthCount: monthBookings.length,
-      futureCount: futureBookings.length,
-      upcomingBookings
-    };
+  // פונקציות לפתיחת טופס הזמנה מהיומן
+  const handleTimeSelect = (date, time) => {
+    setSelectedDateForBooking({ date, time });
+    setShowBookingForm(true);
   };
 
-  // המרת מספר יום לשם היום בעברית
-  const getHebrewDayName = (dateString) => {
-    const date = new Date(dateString);
-    const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-    return days[date.getDay()];
+  const handleQuickBooking = (date, time) => {
+    setSelectedDateForBooking({ date, time });
+    setShowBookingForm(true);
   };
 
-  // רינדור תפריט צד
+  // קיים קוד קודם של getStatistics ו-getHebrewDayName 
+
+  // רינדור תפריט צד - עם הוספת תפריט יומן חדש
   const renderSidebar = () => {
     const menuItems = [
       { 
@@ -210,6 +178,11 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
         key: 'bookings', 
         label: 'ניהול הזמנות', 
         icon: <Calendar className="w-5 h-5" /> 
+      },
+      { 
+        key: 'calendar', 
+        label: 'יומן הזמנות', 
+        icon: <ClipboardList className="w-5 h-5" /> 
       },
       { 
         key: 'settings', 
@@ -252,108 +225,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     );
   };
 
-  // רינדור תצוגת הדשבורד הראשי
-  const renderDashboard = () => {
-    const stats = getStatistics();
-    
-    return (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold text-amber-900 mb-6">לוח בקרה</h2>
-        
-        {/* כרטיסיות נתונים */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-amber-700">הזמנות היום</p>
-                  <h3 className="text-3xl font-bold text-amber-900">{stats.todayCount}</h3>
-                </div>
-                <div className="bg-amber-100 p-3 rounded-full">
-                  <Calendar className="w-6 h-6 text-amber-700" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-amber-700">הזמנות החודש</p>
-                  <h3 className="text-3xl font-bold text-amber-900">{stats.monthCount}</h3>
-                </div>
-                <div className="bg-amber-100 p-3 rounded-full">
-                  <Calendar className="w-6 h-6 text-amber-700" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-amber-700">הזמנות עתידיות</p>
-                  <h3 className="text-3xl font-bold text-amber-900">{stats.futureCount}</h3>
-                </div>
-                <div className="bg-amber-100 p-3 rounded-full">
-                  <Calendar className="w-6 h-6 text-amber-700" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* טבלת הזמנות קרובות */}
-        <Card className="bg-white">
-          <CardHeader className="border-b p-4">
-            <CardTitle className="text-xl text-amber-900">5 הזמנות קרובות</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-right">
-                <thead className="bg-amber-50 border-b">
-                  <tr>
-                    <th className="p-3">תאריך</th>
-                    <th className="p-3">יום</th>
-                    <th className="p-3">שעות</th>
-                    <th className="p-3">דירה</th>
-                    <th className="p-3">מטרה</th>
-                    <th className="p-3">מזמין</th>
-                    <th className="p-3">טלפון</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.upcomingBookings.length > 0 ? (
-                    stats.upcomingBookings.map((booking, index) => (
-                      <tr key={booking.id || index} className="border-b hover:bg-amber-50">
-                        <td className="p-3">{booking.date}</td>
-                        <td className="p-3">{getHebrewDayName(booking.date)}</td>
-                        <td className="p-3">{booking.startTime}:00 - {booking.endTime}:00</td>
-                        <td className="p-3">{booking.apartment}</td>
-                        <td className="p-3">{booking.purpose}</td>
-                        <td className="p-3">{booking.name}</td>
-                        <td className="p-3">{booking.phone}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="7" className="p-4 text-center text-amber-700">
-                        אין הזמנות קרובות
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
-  // רינדור תצוגת התוכן המרכזית
+  // רינדור תצוגת התוכן המרכזית - עם הוספת תצוגת יומן
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -370,6 +242,15 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
             bookings={bookings}
             onDeleteBooking={handleDeleteBooking}
             onEditBooking={handleEditBooking}
+          />
+        );
+      case 'calendar':
+        return (
+          <CalendarView 
+            bookings={bookings}
+            onTimeSelect={handleTimeSelect}
+            onQuickBooking={handleQuickBooking}
+            settings={systemSettings}
           />
         );
       case 'settings':
@@ -395,9 +276,16 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
           onClose={() => {
             setShowBookingForm(false);
             setBookingToEdit(null);
+            setSelectedDateForBooking(null);
           }}
-          selectedDate={bookingToEdit ? bookingToEdit.date : new Date().toISOString().split('T')[0]}
-          selectedTime={bookingToEdit ? `${bookingToEdit.startTime}:00` : '08:00'}
+          selectedDate={
+            selectedDateForBooking?.date || 
+            (bookingToEdit ? bookingToEdit.date : new Date().toISOString().split('T')[0])
+          }
+          selectedTime={
+            selectedDateForBooking?.time || 
+            (bookingToEdit ? `${bookingToEdit.startTime}:00` : '08:00')
+          }
           settings={systemSettings}
           onSubmit={handleBookingFormSubmit}
           isEditMode={!!bookingToEdit}
