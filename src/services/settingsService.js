@@ -11,8 +11,7 @@ import { db } from '../firebase';
 
 class SettingsService {
   constructor() {
-    this.settingsRef = ref(db, 'system/settings');
-    this.apartmentsRef = ref(db, 'apartments');
+    this.settingsRef = ref(db, 'settings');
   }
 
   // שליפת הגדרות מערכת
@@ -27,18 +26,20 @@ class SettingsService {
         };
       } else {
         // יצירת הגדרות ברירת מחדל אם לא קיימות
-        await this.initializeDefaultSettings();
+        const defaultSettings = this.getDefaultSettings();
+        await set(this.settingsRef, defaultSettings);
         
         return {
           success: true,
-          settings: this.getDefaultSettings()
+          settings: defaultSettings
         };
       }
     } catch (error) {
       console.error('שגיאה בשליפת הגדרות:', error);
       return {
         success: false,
-        message: 'שגיאה בשליפת הגדרות'
+        message: 'שגיאה בשליפת הגדרות',
+        error
       };
     }
   }
@@ -46,139 +47,59 @@ class SettingsService {
   // הגדרות ברירת מחדל
   getDefaultSettings() {
     return {
-      systemSettings: {
-        automaticConfirmation: false,
-        maxBookingDuration: 7,
-        notificationEmail: '',
-        cancellationPolicy: {
-          freeCancellationDays: 3,
-          cancellationFee: 50
-        }
-      }
+      title: 'חדר דיירים בן חור 4',
+      accessCode: '4334',
+      adminCode: '3266',
+      maxBookingHours: 12,
+      regulations: 'החדר מוקצה לשימוש פרטי של דיירי הבניין בלבד...',
+      updatedAt: new Date().toISOString()
     };
-  }
-
-  // אתחול הגדרות ברירת מחדל
-  async initializeDefaultSettings() {
-    try {
-      await set(this.settingsRef, this.getDefaultSettings());
-    } catch (error) {
-      console.error('שגיאה באתחול הגדרות:', error);
-    }
   }
 
   // עדכון הגדרות מערכת
   async updateSystemSettings(newSettings) {
     try {
-      await update(this.settingsRef, {
-        systemSettings: newSettings,
+      const updatedSettings = {
+        ...newSettings,
         updatedAt: new Date().toISOString()
-      });
+      };
+      
+      await set(this.settingsRef, updatedSettings);
 
       return {
         success: true,
-        settings: newSettings
+        settings: updatedSettings
       };
     } catch (error) {
       console.error('שגיאה בעדכון הגדרות:', error);
       return {
         success: false,
-        message: 'שגיאה בעדכון הגדרות'
+        message: 'שגיאה בעדכון הגדרות',
+        error
       };
     }
   }
 
-  // שליפת כל הדירות
-  async getApartments() {
+  // עדכון שדה בודד בהגדרות
+  async updateSetting(field, value) {
     try {
-      const snapshot = await get(this.apartmentsRef);
-      let apartments = [];
-
-      if (snapshot.exists()) {
-        apartments = Object.entries(snapshot.val()).map(([id, apartment]) => ({
-          id,
-          ...apartment
-        }));
-      }
-
-      return {
-        success: true,
-        apartments: apartments
-      };
-    } catch (error) {
-      console.error('שגיאה בשליפת דירות:', error);
-      return {
-        success: false,
-        message: 'שגיאה בשליפת דירות'
-      };
-    }
-  }
-
-  // הוספת דירה
-  async addApartment(apartmentData) {
-    try {
-      const newApartmentRef = push(this.apartmentsRef);
-      const newApartment = {
-        ...apartmentData,
-        id: newApartmentRef.key,
-        createdAt: new Date().toISOString()
-      };
-
-      await set(newApartmentRef, newApartment);
-
-      return {
-        success: true,
-        apartment: newApartment
-      };
-    } catch (error) {
-      console.error('שגיאה בהוספת דירה:', error);
-      return {
-        success: false,
-        message: 'שגיאה בהוספת דירה'
-      };
-    }
-  }
-
-  // עדכון דירה
-  async updateApartment(apartmentId, updatedData) {
-    try {
-      const apartmentRef = ref(db, `apartments/${apartmentId}`);
+      const updates = {};
+      updates[field] = value;
+      updates['updatedAt'] = new Date().toISOString();
       
-      const updatedApartment = {
-        ...updatedData,
-        id: apartmentId,
-        updatedAt: new Date().toISOString()
-      };
-
-      await set(apartmentRef, updatedApartment);
-
+      await update(this.settingsRef, updates);
+      
       return {
         success: true,
-        apartment: updatedApartment
+        field,
+        value
       };
     } catch (error) {
-      console.error('שגיאה בעדכון דירה:', error);
+      console.error(`שגיאה בעדכון שדה ${field}:`, error);
       return {
         success: false,
-        message: 'שגיאה בעדכון דירה'
-      };
-    }
-  }
-
-  // מחיקת דירה
-  async deleteApartment(apartmentId) {
-    try {
-      const apartmentRef = ref(db, `apartments/${apartmentId}`);
-      await remove(apartmentRef);
-
-      return {
-        success: true
-      };
-    } catch (error) {
-      console.error('שגיאה במחיקת דירה:', error);
-      return {
-        success: false,
-        message: 'שגיאה במחיקת דירה'
+        message: `שגיאה בעדכון שדה ${field}`,
+        error
       };
     }
   }
