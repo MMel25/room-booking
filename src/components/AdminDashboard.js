@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Home, Settings, Calendar, LogOut, User, Phone, ClipboardList, Edit } from 'lucide-react';
+import { Home, Settings, Calendar, LogOut, User, Phone, ClipboardList, Edit, Menu, X } from 'lucide-react';
 
 import BookingManagement from './BookingManagement';
 import SystemSettings from './SystemSettings';
@@ -29,7 +29,8 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState(null);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // טעינת נתונים ראשונית אם לא התקבלו מלמעלה
   useEffect(() => {
@@ -63,10 +64,14 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
 
     // הוספת האזנה לשינוי גודל מסך עבור תצוגה מותאמת למובייל
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setShowSidebar(false);
-      } else {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+      // בגדלי מסך גדולים, נציג תמיד את התפריט
+      if (!mobile) {
         setShowSidebar(true);
+      } else {
+        setShowSidebar(false);
       }
     };
 
@@ -173,6 +178,15 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     navigate('/access');
   };
 
+  // טיפול בלחיצה על תפריט
+  const handleMenuItemClick = (view) => {
+    setActiveView(view);
+    // במובייל, סגירת התפריט אחרי בחירה
+    if (isMobile) {
+      setShowSidebar(false);
+    }
+  };
+
   // טיפול בהזמנה מתצוגת לוח השנה
   const handleCalendarTimeSelect = (date, time) => {
     // יצירת אובייקט הזמנה התחלתי
@@ -193,9 +207,8 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   };
 
   // טיפול בעריכת הזמנה מתצוגת לוח השנה
-  const handleCalendarBookingEdit = (booking) => {
-    setBookingToEdit(booking);
-    setShowBookingForm(true);
+  const handleCalendarBookingClick = (booking) => {
+    handleEditBooking(booking);
   };
 
   // נתונים סטטיסטיים לדשבורד
@@ -270,8 +283,27 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
       }
     ];
 
+    // סגנון דינמי לתפריט צד בהתאם למצב (מובייל/דסקטופ) ומצב התפריט (פתוח/סגור)
+    const sidebarClasses = [
+      "bg-amber-50 p-4 border-l transition-all duration-300 z-50 min-h-screen", // בסיס
+      isMobile ? "fixed top-0 right-0 h-full shadow-lg" : "sticky top-0", // מובייל או דסקטופ
+      isMobile && !showSidebar ? "transform translate-x-full" : "transform translate-x-0", // סגנון הופעה/היעלמות
+      isMobile ? "w-64" : showSidebar ? "w-64" : "w-0 p-0 overflow-hidden" // רוחב
+    ].join(" ");
+
     return (
-      <div className={`bg-amber-50 p-4 border-l transition-all ${showSidebar ? 'w-64' : 'w-0 p-0 overflow-hidden'}`} dir="rtl">
+      <div className={sidebarClasses} dir="rtl">
+        {/* כפתור סגירה במובייל */}
+        {isMobile && showSidebar && (
+          <button 
+            className="absolute top-4 left-4 text-amber-900 hover:text-amber-700"
+            onClick={() => setShowSidebar(false)}
+            aria-label="סגור תפריט"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        )}
+
         <div className="mb-6 text-center">
           <h2 className="text-xl font-bold text-amber-900">
             ממשק ניהול
@@ -280,10 +312,11 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
             {user?.email || "מנהל מערכת"}
           </p>
         </div>
+        
         {menuItems.map((item) => (
           <button
             key={item.key}
-            onClick={() => setActiveView(item.key)}
+            onClick={() => handleMenuItemClick(item.key)}
             className={`w-full flex items-center p-3 mb-2 rounded 
               ${activeView === item.key 
                 ? 'bg-amber-200 text-amber-900' 
@@ -293,6 +326,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
             <span>{item.label}</span>
           </button>
         ))}
+        
         <button
           onClick={handleLogout}
           className="w-full flex items-center p-3 mt-4 bg-red-100 text-red-700 rounded hover:bg-red-200"
@@ -306,16 +340,55 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
 
   // רינדור כפתור לפתיחת התפריט במובייל
   const renderMobileMenuButton = () => {
+    if (!isMobile) return null;
+    
     return (
       <button 
-        className="md:hidden fixed top-4 right-4 z-50 p-2 bg-amber-100 rounded-full shadow-md"
-        onClick={() => setShowSidebar(!showSidebar)}
+        className="fixed top-4 right-4 z-50 p-2 bg-amber-100 rounded-full shadow-md flex items-center justify-center"
+        onClick={() => setShowSidebar(true)}
+        aria-label="פתח תפריט"
       >
-        <span className="sr-only">תפריט</span>
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-        </svg>
+        <Menu className="h-6 w-6 text-amber-900" />
       </button>
+    );
+  };
+
+  // רינדור כותרת הדף הנוכחי למובייל
+  const renderMobileHeader = () => {
+    if (!isMobile) return null;
+
+    let title = "";
+    let icon = null;
+
+    switch(activeView) {
+      case 'dashboard':
+        title = "לוח בקרה";
+        icon = <Home className="w-5 h-5" />;
+        break;
+      case 'bookings':
+        title = "ניהול הזמנות";
+        icon = <ClipboardList className="w-5 h-5" />;
+        break;
+      case 'calendarBookings':
+        title = "תצוגת יומן";
+        icon = <Calendar className="w-5 h-5" />;
+        break;
+      case 'settings':
+        title = "הגדרות מערכת";
+        icon = <Settings className="w-5 h-5" />;
+        break;
+      default:
+        title = "ממשק ניהול";
+        break;
+    }
+
+    return (
+      <div className="bg-amber-50 shadow-sm p-4 mb-4 flex items-center justify-center sticky top-0 z-10">
+        <div className="flex items-center">
+          {icon && <span className="ml-2">{icon}</span>}
+          <h1 className="text-xl font-bold text-amber-900">{title}</h1>
+        </div>
+      </div>
     );
   };
 
@@ -325,7 +398,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     
     return (
       <div className="p-4">
-        <h2 className="text-2xl font-bold text-amber-900 mb-6">לוח בקרה</h2>
+        {!isMobile && <h2 className="text-2xl font-bold text-amber-900 mb-6">לוח בקרה</h2>}
         
         {/* כרטיסיות נתונים */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -384,11 +457,11 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
                   <tr>
                     <th className="p-3">תאריך</th>
                     <th className="p-3">יום</th>
-                    <th className="p-3">שעות</th>
+                    <th className="p-3 whitespace-nowrap">שעות</th>
                     <th className="p-3">דירה</th>
-                    <th className="p-3">מטרה</th>
-                    <th className="p-3">מזמין</th>
-                    <th className="p-3">טלפון</th>
+                    <th className="p-3 hidden md:table-cell">מטרה</th>
+                    <th className="p-3 hidden md:table-cell">מזמין</th>
+                    <th className="p-3 hidden md:table-cell">טלפון</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -397,11 +470,11 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
                       <tr key={booking.id || index} className="border-b hover:bg-amber-50">
                         <td className="p-3">{booking.date}</td>
                         <td className="p-3">{getHebrewDayName(booking.date)}</td>
-                        <td className="p-3">{booking.startTime}:00 - {booking.endTime}:00</td>
+                        <td className="p-3 whitespace-nowrap">{booking.startTime}:00 - {booking.endTime}:00</td>
                         <td className="p-3">{booking.apartment}</td>
-                        <td className="p-3">{booking.purpose}</td>
-                        <td className="p-3">{booking.name}</td>
-                        <td className="p-3">{booking.phone}</td>
+                        <td className="p-3 hidden md:table-cell">{booking.purpose}</td>
+                        <td className="p-3 hidden md:table-cell">{booking.name}</td>
+                        <td className="p-3 hidden md:table-cell">{booking.phone}</td>
                       </tr>
                     ))
                   ) : (
@@ -429,10 +502,12 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     
     return (
       <div className="p-4">
-        <h2 className="text-2xl font-bold text-amber-900 mb-6 flex items-center">
-          <Calendar className="w-6 h-6 ml-2" />
-          תצוגת יומן עם עריכה
-        </h2>
+        {!isMobile && (
+          <h2 className="text-2xl font-bold text-amber-900 mb-6 flex items-center">
+            <Calendar className="w-6 h-6 ml-2" />
+            תצוגת יומן עם עריכה
+          </h2>
+        )}
         
         <div className="bg-white rounded-lg shadow">
           <CalendarView
@@ -453,54 +528,68 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex items-center justify-center h-full">
-          <p className="text-amber-900">טוען נתונים...</p>
+        <div className="flex items-center justify-center h-full p-8">
+          <div className="text-center">
+            <div className="inline-block w-8 h-8 border-4 border-amber-200 border-t-amber-800 rounded-full animate-spin mb-4"></div>
+            <p className="text-amber-900">טוען נתונים...</p>
+          </div>
         </div>
       );
     }
 
-    switch(activeView) {
-      case 'bookings':
-        return (
-          <BookingManagement 
-            bookings={bookings}
-            onDeleteBooking={handleDeleteBooking}
-            onEditBooking={handleEditBooking}
-          />
-        );
-      case 'calendarBookings':
-        return renderCalendarBookings();
-      case 'settings':
-        return (
-          <SystemSettings 
-            initialSettings={systemSettings} 
-            onUpdateSettings={handleUpdateSettings} 
-          />
-        );
-      default:
-        return renderDashboard();
-    }
+    return (
+      <div className="flex-1 overflow-auto">
+        {isMobile && renderMobileHeader()}
+        
+        <div className="pb-20 md:pb-0"> {/* מרווח תחתון למובייל */}
+          {(() => {
+            switch(activeView) {
+              case 'bookings':
+                return (
+                  <BookingManagement 
+                    bookings={bookings}
+                    onDeleteBooking={handleDeleteBooking}
+                    onEditBooking={handleEditBooking}
+                  />
+                );
+              case 'calendarBookings':
+                return renderCalendarBookings();
+              case 'settings':
+                return (
+                  <SystemSettings 
+                    initialSettings={systemSettings} 
+                    onUpdateSettings={handleUpdateSettings} 
+                  />
+                );
+              default:
+                return renderDashboard();
+            }
+          })()}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="flex h-screen flex-col md:flex-row relative">
+    <div className="relative min-h-screen bg-gray-50">
+      {/* כפתור תפריט המבורגר במובייל */}
       {renderMobileMenuButton()}
       
       {/* מסך כהה ברקע בעת פתיחת התפריט במובייל */}
-      {showSidebar && window.innerWidth < 768 && (
+      {isMobile && showSidebar && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setShowSidebar(false)}
         />
       )}
       
-      {/* תפריט צד */}
-      <div className={`z-50 md:z-auto md:static ${window.innerWidth < 768 ? 'fixed inset-y-0 right-0' : ''}`}>
+      {/* תפריט צד ותוכן ראשי */}
+      <div className="flex flex-col md:flex-row min-h-screen">
         {renderSidebar()}
+        <main className="flex-1 md:overflow-auto">
+          {renderContent()}
+        </main>
       </div>
-      
-      {/* תוכן מרכזי */}
-      <div className="flex-1 overflow-auto bg-gray-50">{renderContent()}</div>
       
       {/* מודאל עריכת הזמנה - אם הוא פתוח */}
       {showBookingForm && (
