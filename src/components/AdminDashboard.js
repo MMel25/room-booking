@@ -53,48 +53,37 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     fetchData();
   }, [initialBookings, settings]);
 
-  const handleEditBooking = (booking) => {
-    setBookingToEdit(booking);
-    setShowBookingForm(true);
+  const getStatistics = () => {
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    const todayBookings = bookings.filter(b => b.date === todayString);
+    const futureBookings = bookings.filter(b => b.date >= todayString);
+    return {
+      todayCount: todayBookings.length,
+      futureCount: futureBookings.length,
+      upcomingBookings: futureBookings.slice(0, 5)
+    };
   };
 
-  const handleNewBookingFromCalendar = (date, time) => {
-    setBookingToEdit({ date, startTime: time });
-    setShowBookingForm(true);
-  };
-
-  const renderSidebar = () => {
-    const menuItems = [
-      { key: 'dashboard', label: 'לוח בקרה', icon: <Home className="w-5 h-5" /> },
-      { key: 'bookings', label: 'ניהול הזמנות', icon: <ClipboardList className="w-5 h-5" /> },
-      { key: 'calendar', label: 'תצוגת יומן', icon: <Calendar className="w-5 h-5" /> },
-      { key: 'settings', label: 'הגדרות מערכת', icon: <Settings className="w-5 h-5" /> }
-    ];
-
+  const renderDashboard = () => {
+    const stats = getStatistics();
     return (
-      <div className="w-64 bg-amber-50 p-4 border-l" dir="rtl">
-        <div className="mb-6 text-center">
-          <h2 className="text-xl font-bold text-amber-900">ממשק ניהול</h2>
-          <p className="text-sm text-amber-700">{user?.email || "מנהל מערכת"}</p>
+      <div className="p-4">
+        <h2 className="text-2xl font-bold text-amber-900 mb-6">לוח בקרה</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card className="bg-white">
+            <CardContent className="p-4">
+              <p className="text-amber-700">הזמנות היום</p>
+              <h3 className="text-3xl font-bold text-amber-900">{stats.todayCount}</h3>
+            </CardContent>
+          </Card>
+          <Card className="bg-white">
+            <CardContent className="p-4">
+              <p className="text-amber-700">הזמנות עתידיות</p>
+              <h3 className="text-3xl font-bold text-amber-900">{stats.futureCount}</h3>
+            </CardContent>
+          </Card>
         </div>
-        {menuItems.map((item) => (
-          <button
-            key={item.key}
-            onClick={() => setActiveView(item.key)}
-            className={`w-full flex items-center p-3 mb-2 rounded 
-              ${activeView === item.key ? 'bg-amber-200 text-amber-900' : 'hover:bg-amber-100'}`}
-          >
-            <span className="ml-2">{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-        <button
-          onClick={logout}
-          className="w-full flex items-center p-3 mt-4 bg-red-100 text-red-700 rounded hover:bg-red-200"
-        >
-          <LogOut className="w-5 h-5 ml-2" />
-          התנתק
-        </button>
       </div>
     );
   };
@@ -105,19 +94,19 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     }
     switch (activeView) {
       case 'bookings':
-        return <BookingManagement bookings={bookings} onEditBooking={handleEditBooking} />;
+        return <BookingManagement bookings={bookings} onEditBooking={setBookingToEdit} />;
       case 'calendar':
-        return <CalendarView bookings={bookings} onTimeSelect={handleNewBookingFromCalendar} onEditBooking={handleEditBooking} settings={systemSettings} />;
+        return <CalendarView bookings={bookings} onTimeSelect={setBookingToEdit} onEditBooking={setBookingToEdit} settings={systemSettings} />;
       case 'settings':
         return <SystemSettings initialSettings={systemSettings} />;
       default:
-        return <Card className="p-4"><CardHeader><CardTitle>לוח בקרה</CardTitle></CardHeader><CardContent>ברוך הבא לממשק הניהול</CardContent></Card>;
+        return renderDashboard();
     }
   };
 
   return (
     <div className="flex h-screen">
-      {renderSidebar()}
+      <div className="w-64 bg-amber-50 p-4 border-l">ממשק ניהול</div>
       <div className="flex-1 overflow-auto bg-gray-50 p-4">{renderContent()}</div>
       {showBookingForm && (
         <BookingForm
