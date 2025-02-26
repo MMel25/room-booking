@@ -4,7 +4,8 @@ import {
   BrowserRouter as Router, 
   Routes, 
   Route, 
-  Navigate
+  Navigate,
+  useLocation
 } from 'react-router-dom';
 import { db } from './firebase';
 import { AdminAuthProvider } from './context/AdminAuthContext';
@@ -12,6 +13,25 @@ import AccessPage from './components/AccessPage';
 import CalendarView from './components/CalendarView';
 import BookingForm from './components/BookingForm';
 import AdminDashboard from './components/AdminDashboard';
+
+// רכיב עזר לדיבוג - יתעד את מצב האימות בקונסול
+const AuthDebugger = ({ isAuthenticated, isAdmin }) => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    console.log('Auth Debug Info:', { 
+      isAuthenticated, 
+      isAdmin, 
+      currentPath: location.pathname,
+      localStorage: {
+        isAuthenticated: localStorage.getItem('isAuthenticated'),
+        userRole: localStorage.getItem('userRole')
+      }
+    });
+  }, [isAuthenticated, isAdmin, location]);
+  
+  return null; // רכיב לא מרנדר דבר
+};
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -28,26 +48,23 @@ const App = () => {
     regulations: 'יש החדר מוקצה לשימוש פרטי של דיירי הבניין בלבד...'
   });
   const [bookings, setBookings] = useState([]);
+  
+  // ניקוי מלא של אחסון מקומי בטעינה - נאלץ אימות מחדש
+  useEffect(() => {
+    // אילוץ התנתקות בעת טעינת האפליקציה
+    console.log('Forcing logout and localStorage cleanup');
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userRole');
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+  }, []);
 
-  // אתחול ראשוני וטעינת מצב אימות
+  // אתחול ראשוני וטעינת נתונים
   useEffect(() => {
     const initialize = async () => {
-      // בדיקה אם יש מידע אימות שמור
-      const savedAuth = localStorage.getItem('isAuthenticated');
-      const savedRole = localStorage.getItem('userRole');
-      
-      if (savedAuth === 'true') {
-        setIsAuthenticated(true);
-        setIsAdmin(savedRole === 'admin');
-      } else {
-        // ניקוי אימות אם אין מידע שמור
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('userRole');
-        setIsAuthenticated(false);
-        setIsAdmin(false);
-      }
-      
       try {
+        console.log('Initializing app and loading data');
+        
         // טעינת הגדרות
         const settingsRef = ref(db, 'settings');
         const snapshot = await get(settingsRef);
@@ -82,6 +99,7 @@ const App = () => {
 
   // טיפול בהתחברות
   const handleAuthenticate = (isAdminUser) => {
+    console.log('Authentication successful:', { isAdminUser });
     setIsAuthenticated(true);
     setIsAdmin(isAdminUser);
     localStorage.setItem('isAuthenticated', 'true');
@@ -90,6 +108,7 @@ const App = () => {
 
   // טיפול בהתנתקות
   const handleLogout = () => {
+    console.log('Logging out');
     setIsAuthenticated(false);
     setIsAdmin(false);
     localStorage.removeItem('isAuthenticated');
@@ -108,6 +127,8 @@ const App = () => {
   return (
     <AdminAuthProvider>
       <Router>
+        <AuthDebugger isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
+        
         <Routes>
           {/* נתיב הכניסה והאימות */}
           <Route 
@@ -189,12 +210,8 @@ const App = () => {
             } 
           />
 
-          {/* נתיב ברירת מחדל - הפניה לדף הכניסה אם לא מאומת */}
-          <Route path="*" element={
-            isAuthenticated 
-              ? <Navigate to={isAdmin ? "/dashboard" : "/"} replace />
-              : <Navigate to="/access" replace />
-          } />
+          {/* נתיב ברירת מחדל - הפניה תמיד לדף הכניסה */}
+          <Route path="*" element={<Navigate to="/access" replace />} />
         </Routes>
       </Router>
     </AdminAuthProvider>
