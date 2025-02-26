@@ -6,6 +6,7 @@ import { Home, Settings, Calendar, LogOut, User, Phone, ClipboardList } from 'lu
 
 import BookingManagement from './BookingManagement';
 import SystemSettings from './SystemSettings';
+import BookingForm from './BookingForm';
 import BookingService from '../services/bookingService';
 import SettingsService from '../services/settingsService';
 
@@ -17,33 +18,47 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   // מצבי הקומפוננטה
   const [activeView, setActiveView] = useState('dashboard');
   const [bookings, setBookings] = useState(initialBookings || []);
+  const [systemSettings, setSystemSettings] = useState(settings || {
+    title: 'חדר דיירים',
+    accessCode: '',
+    adminCode: '',
+    maxBookingHours: 12,
+    regulations: 'יש לשמור על ניקיון החדר...'
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState(null);
 
   // טעינת נתונים ראשונית אם לא התקבלו מלמעלה
   useEffect(() => {
-    if (initialBookings && initialBookings.length > 0) {
-      setBookings(initialBookings);
-      return;
-    }
-
-    const fetchBookings = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const result = await BookingService.getBookings();
-        if (result.success) {
-          setBookings(result.bookings);
+        
+        // טעינת הזמנות אם לא התקבלו מלמעלה
+        if (!initialBookings || initialBookings.length === 0) {
+          const bookingsResult = await BookingService.getBookings();
+          if (bookingsResult.success) {
+            setBookings(bookingsResult.bookings);
+          }
+        }
+        
+        // טעינת הגדרות אם לא התקבלו מלמעלה
+        if (!settings) {
+          const settingsResult = await SettingsService.getSettings();
+          if (settingsResult.success) {
+            setSystemSettings(settingsResult.settings);
+          }
         }
       } catch (error) {
-        console.error('שגיאה בטעינת הזמנות:', error);
+        console.error('שגיאה בטעינת נתונים:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchBookings();
-  }, [initialBookings]);
+    fetchData();
+  }, [initialBookings, settings]);
 
   // פונקציות ניהול הזמנות
   const handleDeleteBooking = async (bookingToDelete) => {
@@ -52,15 +67,19 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     }
     
     try {
+      setIsLoading(true);
       const result = await BookingService.deleteBooking(bookingToDelete.id);
+      setIsLoading(false);
+      
       if (result.success) {
         setBookings(bookings.filter(b => b.id !== bookingToDelete.id));
       } else {
-        alert('שגיאה במחיקת ההזמנה: ' + result.message);
+        alert('שגיאה במחיקת ההזמנה: ' + (result.message || 'אירעה שגיאה'));
       }
     } catch (error) {
       console.error('שגיאה במחיקת הזמנה:', error);
       alert('שגיאה במחיקת ההזמנה');
+      setIsLoading(false);
     }
   };
 
@@ -71,6 +90,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
 
   const handleBookingFormSubmit = async (updatedBookingData) => {
     try {
+      setIsLoading(true);
       let result;
       
       if (bookingToEdit) {
@@ -80,6 +100,8 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
         // הוספת הזמנה חדשה
         result = await BookingService.addBooking(updatedBookingData);
       }
+      
+      setIsLoading(false);
       
       if (result.success) {
         // עדכון הרשימה המקומית
@@ -99,20 +121,26 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     } catch (error) {
       console.error('שגיאה בשמירת הזמנה:', error);
       alert('שגיאה בשמירת ההזמנה');
+      setIsLoading(false);
     }
   };
 
   const handleUpdateSettings = async (newSettings) => {
     try {
+      setIsLoading(true);
       const result = await SettingsService.updateSystemSettings(newSettings);
+      setIsLoading(false);
+      
       if (result.success) {
+        setSystemSettings(newSettings);
         alert('ההגדרות נשמרו בהצלחה');
       } else {
-        alert('שגיאה בשמירת ההגדרות: ' + result.message);
+        alert('שגיאה בשמירת ההגדרות: ' + (result.message || 'אירעה שגיאה'));
       }
     } catch (error) {
       console.error('שגיאה בעדכון הגדרות:', error);
       alert('שגיאה בעדכון ההגדרות');
+      setIsLoading(false);
     }
   };
 
@@ -347,7 +375,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
       case 'settings':
         return (
           <SystemSettings 
-            initialSettings={settings} 
+            initialSettings={systemSettings} 
             onUpdateSettings={handleUpdateSettings} 
           />
         );
@@ -363,26 +391,18 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
       
       {/* מודאל עריכת הזמנה - אם הוא פתוח */}
       {showBookingForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="relative w-full max-w-md bg-white rounded-lg shadow-lg">
-            <button 
-              className="absolute top-2 left-2 text-gray-500 hover:text-gray-700" 
-              onClick={() => {
-                setShowBookingForm(false);
-                setBookingToEdit(null);
-              }}
-            >
-              ✕
-            </button>
-            {/* כאן צריך להטמיע את טופס העריכה */}
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-amber-900 mb-4">
-                {bookingToEdit ? 'עריכת הזמנה' : 'הזמנה חדשה'}
-              </h3>
-              {/* כאן יש להטמיע את טופס העריכה */}
-            </div>
-          </div>
-        </div>
+        <BookingForm
+          onClose={() => {
+            setShowBookingForm(false);
+            setBookingToEdit(null);
+          }}
+          selectedDate={bookingToEdit ? bookingToEdit.date : new Date().toISOString().split('T')[0]}
+          selectedTime={bookingToEdit ? `${bookingToEdit.startTime}:00` : '08:00'}
+          settings={systemSettings}
+          onSubmit={handleBookingFormSubmit}
+          isEditMode={!!bookingToEdit}
+          initialData={bookingToEdit}
+        />
       )}
     </div>
   );
