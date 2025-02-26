@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Home, Settings, Calendar, LogOut, User, Phone, ClipboardList } from 'lucide-react';
+import { Home, Settings, Calendar, LogOut, User, Phone, ClipboardList, Edit } from 'lucide-react';
 
 import BookingManagement from './BookingManagement';
 import SystemSettings from './SystemSettings';
 import BookingForm from './BookingForm';
 import BookingService from '../services/bookingService';
 import SettingsService from '../services/settingsService';
+import CalendarView from './CalendarView';
 
 const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   // שימוש בהוקים
@@ -28,6 +29,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingToEdit, setBookingToEdit] = useState(null);
+  const [showSidebar, setShowSidebar] = useState(true);
 
   // טעינת נתונים ראשונית אם לא התקבלו מלמעלה
   useEffect(() => {
@@ -58,6 +60,26 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     };
 
     fetchData();
+
+    // הוספת האזנה לשינוי גודל מסך עבור תצוגה מותאמת למובייל
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setShowSidebar(false);
+      } else {
+        setShowSidebar(true);
+      }
+    };
+
+    // בדיקה ראשונית של גודל המסך
+    handleResize();
+
+    // הוספת מאזין לשינויי גודל חלון
+    window.addEventListener('resize', handleResize);
+
+    // ניקוי המאזין בעת פירוק הקומפוננטה
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   }, [initialBookings, settings]);
 
   // פונקציות ניהול הזמנות
@@ -151,6 +173,31 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     navigate('/access');
   };
 
+  // טיפול בהזמנה מתצוגת לוח השנה
+  const handleCalendarTimeSelect = (date, time) => {
+    // יצירת אובייקט הזמנה התחלתי
+    const startTime = parseInt(time.split(':')[0]);
+    const initialBookingData = {
+      date,
+      startTime,
+      endTime: startTime + 1, // ברירת מחדל: שעה אחת
+      name: '',
+      apartment: '',
+      phone: '',
+      purpose: ''
+    };
+    
+    // פתיחת טופס הזמנה חדשה
+    setBookingToEdit(null);
+    setShowBookingForm(true);
+  };
+
+  // טיפול בעריכת הזמנה מתצוגת לוח השנה
+  const handleCalendarBookingEdit = (booking) => {
+    setBookingToEdit(booking);
+    setShowBookingForm(true);
+  };
+
   // נתונים סטטיסטיים לדשבורד
   const getStatistics = () => {
     const today = new Date();
@@ -209,6 +256,11 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
       { 
         key: 'bookings', 
         label: 'ניהול הזמנות', 
+        icon: <ClipboardList className="w-5 h-5" /> 
+      },
+      { 
+        key: 'calendarBookings', 
+        label: 'תצוגת יומן', 
         icon: <Calendar className="w-5 h-5" /> 
       },
       { 
@@ -219,7 +271,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     ];
 
     return (
-      <div className="w-64 bg-amber-50 p-4 border-l" dir="rtl">
+      <div className={`bg-amber-50 p-4 border-l transition-all ${showSidebar ? 'w-64' : 'w-0 p-0 overflow-hidden'}`} dir="rtl">
         <div className="mb-6 text-center">
           <h2 className="text-xl font-bold text-amber-900">
             ממשק ניהול
@@ -249,6 +301,21 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
           התנתק
         </button>
       </div>
+    );
+  };
+
+  // רינדור כפתור לפתיחת התפריט במובייל
+  const renderMobileMenuButton = () => {
+    return (
+      <button 
+        className="md:hidden fixed top-4 right-4 z-50 p-2 bg-amber-100 rounded-full shadow-md"
+        onClick={() => setShowSidebar(!showSidebar)}
+      >
+        <span className="sr-only">תפריט</span>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+        </svg>
+      </button>
     );
   };
 
@@ -353,6 +420,43 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     );
   };
 
+  // רינדור תצוגת היומן עם יכולות עריכה
+  const renderCalendarBookings = () => {
+    // טיפול בלחיצה על הזמנה קיימת - לעריכה
+    const handleAdminCalendarBookingClick = (booking) => {
+      handleEditBooking(booking);
+    };
+    
+    return (
+      <div className="p-4">
+        <h2 className="text-2xl font-bold text-amber-900 mb-6 flex items-center">
+          <Calendar className="w-6 h-6 ml-2" />
+          תצוגת יומן עם עריכה
+        </h2>
+        
+        <div className="bg-white rounded-lg shadow">
+          <CalendarView
+            bookings={bookings}
+            onTimeSelect={handleCalendarTimeSelect}
+            onQuickBooking={handleCalendarTimeSelect}
+            settings={systemSettings}
+            // העברת פונקציית onBookingClick שתקרא לעריכת הזמנה
+            onBookingClick={handleAdminCalendarBookingClick}
+          />
+        </div>
+        
+        <div className="mt-4 bg-amber-50 p-4 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-amber-900 mb-2">הוראות שימוש:</h3>
+          <ul className="list-disc list-inside text-amber-800">
+            <li>לחץ על שעה פנויה ביומן כדי להוסיף הזמנה חדשה</li>
+            <li>לחץ על הזמנה קיימת כדי לערוך או למחוק אותה</li>
+            <li>ניתן לעבור בין תצוגה חודשית ליומית באמצעות הכפתורים בראש היומן</li>
+          </ul>
+        </div>
+      </div>
+    );
+  };
+
   // רינדור תצוגת התוכן המרכזית
   const renderContent = () => {
     if (isLoading) {
@@ -372,6 +476,8 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
             onEditBooking={handleEditBooking}
           />
         );
+      case 'calendarBookings':
+        return renderCalendarBookings();
       case 'settings':
         return (
           <SystemSettings 
@@ -385,8 +491,23 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   };
 
   return (
-    <div className="flex h-screen">
-      {renderSidebar()}
+    <div className="flex h-screen flex-col md:flex-row relative">
+      {renderMobileMenuButton()}
+      
+      {/* מסך כהה ברקע בעת פתיחת התפריט במובייל */}
+      {showSidebar && window.innerWidth < 768 && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+      
+      {/* תפריט צד */}
+      <div className={`z-50 md:z-auto md:static ${window.innerWidth < 768 ? 'fixed inset-y-0 right-0' : ''}`}>
+        {renderSidebar()}
+      </div>
+      
+      {/* תוכן מרכזי */}
       <div className="flex-1 overflow-auto bg-gray-50">{renderContent()}</div>
       
       {/* מודאל עריכת הזמנה - אם הוא פתוח */}
