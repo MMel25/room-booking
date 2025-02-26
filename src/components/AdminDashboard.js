@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Home, Settings, Calendar, LogOut, ClipboardList, Plus } from 'lucide-react';
+import { Home, Settings, Calendar, LogOut, ClipboardList } from 'lucide-react';
 
 import BookingManagement from './BookingManagement';
 import SystemSettings from './SystemSettings';
@@ -107,11 +107,11 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
       case 'bookings':
         return <BookingManagement bookings={bookings} onEditBooking={handleEditBooking} />;
       case 'calendar':
-        return <CalendarView bookings={bookings} onTimeSelect={handleNewBookingFromCalendar} settings={systemSettings} />;
+        return <CalendarView bookings={bookings} onTimeSelect={handleNewBookingFromCalendar} onEditBooking={handleEditBooking} settings={systemSettings} />;
       case 'settings':
         return <SystemSettings initialSettings={systemSettings} />;
       default:
-        return <p className="text-amber-900 text-center">ברוך הבא לממשק הניהול</p>;
+        return <Card className="p-4"><CardHeader><CardTitle>לוח בקרה</CardTitle></CardHeader><CardContent>ברוך הבא לממשק הניהול</CardContent></Card>;
     }
   };
 
