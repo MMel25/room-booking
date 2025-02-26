@@ -68,23 +68,8 @@ const BookingManagement = ({ bookings, onDeleteBooking, onEditBooking }) => {
 
   // פונקציה לטיפול בעריכת הזמנה
   const handleEdit = (booking) => {
-    setSelectedBooking(booking);
-    setShowEditForm(true);
-  };
-
-  // פונקציה לסגירת טופס העריכה
-  const handleCloseEditForm = () => {
-    setSelectedBooking(null);
-    setShowEditForm(false);
-  };
-
-  // פונקציה לעדכון הזמנה לאחר שמירה
-  const handleSubmitEdit = (updatedBooking) => {
-    onEditBooking({
-      ...selectedBooking,
-      ...updatedBooking
-    });
-    handleCloseEditForm();
+    // במקום לפתוח את הטופס כאן, נעביר את ההזמנה לעריכה ל-AdminDashboard
+    onEditBooking(booking);
   };
 
   return (
@@ -236,22 +221,6 @@ const BookingManagement = ({ bookings, onDeleteBooking, onEditBooking }) => {
           </div>
         </CardContent>
       </Card>
-
-      {/* טופס עריכת הזמנה */}
-      {showEditForm && selectedBooking && (
-        <BookingForm
-          onClose={handleCloseEditForm}
-          selectedDate={selectedBooking.date}
-          selectedTime={`${selectedBooking.startTime}:00`}
-          settings={{
-            ...bookings.settings,
-            regulations: bookings.settings?.regulations || 'תקנון השימוש בחדר'
-          }}
-          onSubmit={handleSubmitEdit}
-          isEditMode={true}
-          initialData={selectedBooking}
-        />
-      )}
     </div>
   );
 };
