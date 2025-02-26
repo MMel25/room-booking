@@ -53,6 +53,41 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     fetchData();
   }, [initialBookings, settings]);
 
+  const getStatistics = () => {
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    const todayBookings = bookings.filter(b => b.date === todayString);
+    const futureBookings = bookings.filter(b => b.date >= todayString);
+    return {
+      todayCount: todayBookings.length,
+      futureCount: futureBookings.length,
+      upcomingBookings: futureBookings.slice(0, 5)
+    };
+  };
+
+  const renderDashboard = () => {
+    const stats = getStatistics();
+    return (
+      <div className="p-4">
+        <h2 className="text-2xl font-bold text-amber-900 mb-6">לוח בקרה</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card className="bg-white">
+            <CardContent className="p-4">
+              <p className="text-amber-700">הזמנות היום</p>
+              <h3 className="text-3xl font-bold text-amber-900">{stats.todayCount}</h3>
+            </CardContent>
+          </Card>
+          <Card className="bg-white">
+            <CardContent className="p-4">
+              <p className="text-amber-700">הזמנות עתידיות</p>
+              <h3 className="text-3xl font-bold text-amber-900">{stats.futureCount}</h3>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  };
+
   const renderSidebar = () => {
     const menuItems = [
       { key: 'dashboard', label: 'לוח בקרה', icon: <Home className="w-5 h-5" /> },
