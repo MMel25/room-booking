@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Calendar, Clock } from 'lucide-react';
 
-const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }) => {
+const BookingForm = ({ 
+  onClose, 
+  selectedDate, 
+  selectedTime, 
+  settings, 
+  onSubmit,
+  isEditMode = false,
+  initialData = null
+}) => {
+  // מצב ראשוני של הטופס - אם זה עריכה, מאתחל עם הנתונים הקיימים
   const [formData, setFormData] = useState({
-    date: selectedDate,
+    date: selectedDate || '',
     startTime: selectedTime ? selectedTime.split(':')[0] : '',
     endTime: '',
     apartment: '',
@@ -13,6 +22,22 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
     purpose: '',
     acceptTerms: false
   });
+
+  // עדכון הנתונים אם מדובר בעריכה
+  useEffect(() => {
+    if (isEditMode && initialData) {
+      setFormData({
+        date: initialData.date || selectedDate || '',
+        startTime: initialData.startTime || (selectedTime ? selectedTime.split(':')[0] : ''),
+        endTime: initialData.endTime || '',
+        apartment: initialData.apartment || '',
+        name: initialData.name || '',
+        phone: initialData.phone || '',
+        purpose: initialData.purpose || '',
+        acceptTerms: true // בעריכה כבר אישרו את התנאים בעבר
+      });
+    }
+  }, [isEditMode, initialData, selectedDate, selectedTime]);
 
   const apartmentOptions = Array.from({ length: 37 }, (_, i) => i + 1);
 
@@ -44,12 +69,12 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 overflow-y-auto z-50" dir="rtl">
       <Card className="w-full max-w-md my-8">
         <CardHeader className="bg-white rounded-t-lg border-b">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-medium" style={{ color: '#DEB887' }}>
-              הזמנת חדר
+            <CardTitle className="text-xl font-medium text-amber-800">
+              {isEditMode ? 'עריכת הזמנה' : 'הזמנת חדר'}
             </CardTitle>
             <button 
               onClick={onClose}
@@ -58,14 +83,55 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
               <ChevronRight className="h-5 w-5 text-amber-900" />
             </button>
           </div>
-          <div className="text-sm text-amber-700">
-            {selectedDate} | {selectedTime}
+          <div className="text-sm text-amber-700 flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span>{formData.date}</span>
+            {formData.startTime && (
+              <>
+                <Clock className="h-4 w-4 ml-2" />
+                <span>{formData.startTime}:00</span>
+              </>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isEditMode && (
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  תאריך
+                </label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                />
+              </div>
+            )}
+
+            {isEditMode && (
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  שעת התחלה
+                </label>
+                <select
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                >
+                  <option value="">בחר שעת התחלה</option>
+                  {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                    <option key={hour} value={hour}>{hour}:00</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
-              <label className="block mb-1" style={{ color: '#DEB887' }}>
+              <label className="block mb-1 text-amber-800">
                 שעת סיום
                 <span className="text-red-500">*</span>
               </label>
@@ -87,7 +153,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             </div>
 
             <div>
-              <label className="block mb-1" style={{ color: '#DEB887' }}>
+              <label className="block mb-1 text-amber-800">
                 מספר דירה
                 <span className="text-red-500">*</span>
               </label>
@@ -105,7 +171,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             </div>
 
             <div>
-              <label className="block mb-1" style={{ color: '#DEB887' }}>
+              <label className="block mb-1 text-amber-800">
                 שם מלא
                 <span className="text-red-500">*</span>
               </label>
@@ -119,7 +185,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             </div>
 
             <div>
-              <label className="block mb-1" style={{ color: '#DEB887' }}>
+              <label className="block mb-1 text-amber-800">
                 טלפון נייד
                 <span className="text-red-500">*</span>
               </label>
@@ -135,7 +201,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
             </div>
 
             <div>
-              <label className="block mb-1" style={{ color: '#DEB887' }}>
+              <label className="block mb-1 text-amber-800">
                 מטרת השימוש בחדר
                 <span className="text-red-500">*</span>
               </label>
@@ -156,7 +222,7 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
                 </div>
               </div>
               
-              <label className="flex items-start gap-2" style={{ color: '#DEB887' }}>
+              <label className="flex items-start gap-2 text-amber-800">
                 <input
                   type="checkbox"
                   checked={formData.acceptTerms}
@@ -181,10 +247,9 @@ const BookingForm = ({ onClose, selectedDate, selectedTime, settings, onSubmit }
               </button>
               <button
                 type="submit"
-                className="flex-1 p-2 rounded text-white"
-                style={{ backgroundColor: '#DEB887' }}
+                className="flex-1 p-2 rounded text-white bg-amber-600 hover:bg-amber-700"
               >
-                אישור הזמנה
+                {isEditMode ? 'שמור שינויים' : 'אישור הזמנה'}
               </button>
             </div>
           </form>
