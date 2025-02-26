@@ -11,7 +11,7 @@ const BookingForm = ({
   isEditMode = false,
   initialData = null
 }) => {
-  // מצב ראשוני של הטופס - אם זה עריכה, מאתחל עם הנתונים הקיימים
+  // מצב ראשוני של הטופס
   const [formData, setFormData] = useState({
     date: selectedDate || '',
     startTime: selectedTime ? selectedTime.split(':')[0] : '',
@@ -26,6 +26,9 @@ const BookingForm = ({
   // עדכון הנתונים אם מדובר בעריכה
   useEffect(() => {
     if (isEditMode && initialData) {
+      // מדפיס למטרות דיבוג
+      console.log('Loading initial data for edit:', initialData);
+      
       setFormData({
         date: initialData.date || selectedDate || '',
         startTime: initialData.startTime || (selectedTime ? selectedTime.split(':')[0] : ''),
@@ -58,14 +61,33 @@ const BookingForm = ({
       return;
     }
     
-    const duration = endHour - startHour;
-    if (duration > settings.maxBookingHours) {
-      alert(`לא ניתן להזמין ליותר מ-${settings.maxBookingHours} שעות`);
-      return;
+    // בדיקת מגבלת שעות רק אם הגדרת maxBookingHours קיימת
+    if (settings && settings.maxBookingHours) {
+      const duration = endHour - startHour;
+      if (duration > settings.maxBookingHours) {
+        alert(`לא ניתן להזמין ליותר מ-${settings.maxBookingHours} שעות`);
+        return;
+      }
     }
     
+    // הכנת אובייקט הנתונים לשליחה - וודא שמועברים כערכים מתאימים
+    const bookingToSubmit = {
+      ...formData,
+      // וודא שהשדות הם מהסוג הנכון
+      apartment: formData.apartment.toString(),
+      startTime: formData.startTime.toString(), 
+      endTime: formData.endTime.toString()
+    };
+    
+    // אם זו עריכה, שמר את ה-id המקורי
+    if (isEditMode && initialData && initialData.id) {
+      bookingToSubmit.id = initialData.id;
+    }
+    
+    console.log('Submitting booking data:', bookingToSubmit);
+    
     // שליחת הנתונים לפונקציה החיצונית
-    onSubmit(formData);
+    onSubmit(bookingToSubmit);
   };
 
   return (
@@ -96,40 +118,41 @@ const BookingForm = ({
         </CardHeader>
         <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isEditMode && (
-              <div>
-                <label className="block mb-1 text-amber-800">
-                  תאריך
-                </label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
-            )}
+            {/* שדה תאריך */}
+            <div>
+              <label className="block mb-1 text-amber-800">
+                תאריך
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                required
+              />
+            </div>
 
-            {isEditMode && (
-              <div>
-                <label className="block mb-1 text-amber-800">
-                  שעת התחלה
-                </label>
-                <select
-                  value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                  required
-                >
-                  <option value="">בחר שעת התחלה</option>
-                  {Array.from({ length: 24 }, (_, i) => i).map(hour => (
-                    <option key={hour} value={hour}>{hour}:00</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {/* שדה שעת התחלה */}
+            <div>
+              <label className="block mb-1 text-amber-800">
+                שעת התחלה
+                <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.startTime}
+                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                required
+              >
+                <option value="">בחר שעת התחלה</option>
+                {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                  <option key={hour} value={hour}>{hour}:00</option>
+                ))}
+              </select>
+            </div>
 
+            {/* שדה שעת סיום */}
             <div>
               <label className="block mb-1 text-amber-800">
                 שעת סיום
@@ -152,6 +175,7 @@ const BookingForm = ({
               </select>
             </div>
 
+            {/* מספר דירה */}
             <div>
               <label className="block mb-1 text-amber-800">
                 מספר דירה
@@ -170,6 +194,7 @@ const BookingForm = ({
               </select>
             </div>
 
+            {/* שם מלא */}
             <div>
               <label className="block mb-1 text-amber-800">
                 שם מלא
@@ -184,6 +209,7 @@ const BookingForm = ({
               />
             </div>
 
+            {/* טלפון נייד */}
             <div>
               <label className="block mb-1 text-amber-800">
                 טלפון נייד
@@ -200,6 +226,7 @@ const BookingForm = ({
               />
             </div>
 
+            {/* מטרת השימוש בחדר */}
             <div>
               <label className="block mb-1 text-amber-800">
                 מטרת השימוש בחדר
@@ -214,11 +241,12 @@ const BookingForm = ({
               />
             </div>
 
+            {/* תקנון ואישור */}
             <div className="pt-4 border-t">
               <div className="text-sm text-amber-800 mb-4">
                 תקנון השימוש בחדר:
                 <div className="mt-2 p-3 bg-amber-50 rounded text-black">
-                  {settings.regulations}
+                  {settings && settings.regulations ? settings.regulations : 'יש לשמור על ניקיון החדר ולהשאירו במצב תקין.'}
                 </div>
               </div>
               
@@ -237,6 +265,7 @@ const BookingForm = ({
               </label>
             </div>
 
+            {/* כפתורי פעולה */}
             <div className="flex gap-3 pt-4">
               <button
                 type="button"
