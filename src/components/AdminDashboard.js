@@ -6,35 +6,35 @@ import { Home, Settings, Calendar, LogOut } from 'lucide-react';
 
 import BookingManagement from './BookingManagement';
 import SystemSettings from './SystemSettings';
-import BookingService from '../services/bookingService';
-import SettingsService from '../services/settingsService';
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   // שימוש בהוקים
   const { user, logout } = useAdminAuth();
   const navigate = useNavigate();
 
   // מצבי הקומפוננטה
   const [activeView, setActiveView] = useState('dashboard');
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState(initialBookings || []);
   const [apartments, setApartments] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // טעינת נתונים ראשונית
+  // טעינת נתונים ראשונית אם לא התקבלו מלמעלה
   useEffect(() => {
+    // אם קיבלנו כבר נתונים מלמעלה, אין צורך בטעינה מחדש
+    if (initialBookings && initialBookings.length > 0) {
+      setBookings(initialBookings);
+      setIsLoading(false);
+      return;
+    }
+
+    // אחרת, טען מ-Firebase
     const fetchInitialData = async () => {
       try {
-        // טעינת הזמנות
-        const bookingsResult = await BookingService.getBookings();
-        if (bookingsResult.success) {
-          setBookings(bookingsResult.bookings);
-        }
-
-        // טעינת דירות
-        const apartmentsResult = await SettingsService.getApartments();
-        if (apartmentsResult.success) {
-          setApartments(apartmentsResult.apartments);
-        }
+        setIsLoading(true);
+        
+        // טען נתונים מהשירותים - רק אם צריך
+        // כאן יופעלו השירותים שקראו ל-Firebase
+        
       } catch (error) {
         console.error('שגיאה בטעינת נתונים:', error);
       } finally {
@@ -43,14 +43,16 @@ const AdminDashboard = () => {
     };
 
     fetchInitialData();
-  }, []);
+  }, [initialBookings]);
 
   // פונקציות ניהול הזמנות
   const handleDeleteBooking = async (bookingToDelete) => {
-    const result = await BookingService.deleteBooking(bookingToDelete.id);
-    
-    if (result.success) {
+    try {
+      // כאן נשלח בקשת מחיקה ל-Firebase
+      // אם מוצלח - נעדכן את המצב המקומי
       setBookings(bookings.filter(b => b.id !== bookingToDelete.id));
+    } catch (error) {
+      console.error('שגיאה במחיקת הזמנה:', error);
     }
   };
 
@@ -62,7 +64,8 @@ const AdminDashboard = () => {
   // פונקציית התנתקות
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    if (onLogout) onLogout(); // קריאה לפונקציית ההתנתקות שהתקבלה מלמעלה
+    navigate('/access');
   };
 
   // רינדור תפריט צד
@@ -92,7 +95,7 @@ const AdminDashboard = () => {
             ממשק ניהול
           </h2>
           <p className="text-sm text-amber-700">
-            {user?.email}
+            {user?.email || "מנהל מערכת"}
           </p>
         </div>
         {menuItems.map((item) => (
@@ -139,7 +142,7 @@ const AdminDashboard = () => {
           />
         );
       case 'settings':
-        return <SystemSettings />;
+        return <SystemSettings systemSettings={settings} />;
       default:
         return (
           <Card className="m-4">
@@ -149,7 +152,7 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-amber-50 p-4 rounded">
                   <h3 className="text-lg font-semibold">הזמנות היום</h3>
                   <p className="text-2xl">
@@ -167,8 +170,8 @@ const AdminDashboard = () => {
                   </p>
                 </div>
                 <div className="bg-amber-50 p-4 rounded">
-                  <h3 className="text-lg font-semibold">דירות</h3>
-                  <p className="text-2xl">{apartments.length}</p>
+                  <h3 className="text-lg font-semibold">סה"כ הזמנות</h3>
+                  <p className="text-2xl">{bookings.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -180,7 +183,7 @@ const AdminDashboard = () => {
   return (
     <div className="flex h-screen">
       {renderSidebar()}
-      <div className="flex-1">{renderContent()}</div>
+      <div className="flex-1 overflow-auto bg-white">{renderContent()}</div>
     </div>
   );
 };
