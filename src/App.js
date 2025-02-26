@@ -29,7 +29,7 @@ const App = () => {
   });
   const [bookings, setBookings] = useState([]);
 
-  // אתחול ראשוני וניקוי אימות
+  // אתחול ראשוני וטעינת מצב אימות
   useEffect(() => {
     const initialize = async () => {
       // בדיקה אם יש מידע אימות שמור
@@ -153,6 +153,11 @@ const App = () => {
                       setSelectedTime(time);
                       setShowBookingForm(true);
                     }}
+                    onQuickBooking={(date, time) => {
+                      setSelectedDate(date);
+                      setSelectedTime(time);
+                      setShowBookingForm(true);
+                    }}
                     settings={settings}
                     onLogout={handleLogout}
                     isAdmin={isAdmin}
@@ -184,8 +189,12 @@ const App = () => {
             } 
           />
 
-          {/* הפניה דיפולטיבית */}
-          <Route path="*" element={<Navigate to="/access" replace />} />
+          {/* נתיב ברירת מחדל - הפניה לדף הכניסה אם לא מאומת */}
+          <Route path="*" element={
+            isAuthenticated 
+              ? <Navigate to={isAdmin ? "/dashboard" : "/"} replace />
+              : <Navigate to="/access" replace />
+          } />
         </Routes>
       </Router>
     </AdminAuthProvider>
