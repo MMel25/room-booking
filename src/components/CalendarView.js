@@ -7,7 +7,8 @@ const CalendarView = ({
   onTimeSelect, 
   onQuickBooking, 
   settings,
-  onBookingClick = null  // פונקציה חדשה לטיפול בלחיצה על הזמנה קיימת
+  onBookingClick = null,  // פונקציה לטיפול בלחיצה על הזמנה קיימת
+  isAdminView = false     // פרמטר לציון מצב תצוגת מנהל
 }) => {
   const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -233,11 +234,17 @@ const CalendarView = ({
             </div>
             <div className="mr-4 text-amber-900 flex-1">
               {isBooked ? (
-                <div className="flex flex-col">
-                  <div className="font-medium">{`ד.${booking.apartment} - ${booking.name}`}</div>
-                  <div className="text-sm text-amber-700">{`${booking.startTime}:00 - ${booking.endTime}:00`}</div>
-                  <div className="text-sm text-amber-700">{booking.purpose}</div>
-                </div>
+                isAdminView ? (
+                  // תצוגה מורחבת למנהל
+                  <div className="flex flex-col">
+                    <div className="font-medium">{`ד.${booking.apartment} - ${booking.name}`}</div>
+                    <div className="text-sm text-amber-700">{`${booking.startTime}:00 - ${booking.endTime}:00`}</div>
+                    <div className="text-sm text-amber-700">{booking.purpose}</div>
+                  </div>
+                ) : (
+                  // תצוגה מינימלית למשתמש רגיל
+                  <span>{`ד.${booking.apartment}`}</span>
+                )
               ) : (
                 <span>פנוי</span>
               )}
@@ -253,7 +260,7 @@ const CalendarView = ({
                 <Plus className="h-4 w-4 text-amber-900" />
               </button>
             )}
-            {isBooked && onBookingClick && (
+            {isBooked && onBookingClick && isAdminView && (
               <div className="absolute left-2 top-1/2 -translate-y-1/2 flex gap-1">
                 <button 
                   className="p-1 rounded-full bg-amber-100 hover:bg-amber-200 transition-colors"
@@ -283,88 +290,93 @@ const CalendarView = ({
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg" dir="rtl">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 text-xl font-medium text-amber-900">
-          <Calendar className="h-6 w-6" />
-          <span>{settings.title}</span>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            className={`px-4 py-2 rounded transition-colors ${
-              viewMode === 'month' 
-                ? 'text-white' 
-                : 'bg-white text-amber-900 border border-amber-100'
-            }`}
-            style={viewMode === 'month' ? { backgroundColor: '#DEB887' } : {}}
-            onClick={() => setViewMode('month')}
-          >
-            חודשי
-          </button>
-          <button 
-            className={`px-4 py-2 rounded transition-colors ${
-              viewMode === 'day' 
-                ? 'text-white' 
-                : 'bg-white text-amber-900 border border-amber-100'
-            }`}
-            style={viewMode === 'day' ? { backgroundColor: '#DEB887' } : {}}
-            onClick={() => setViewMode('day')}
-          >
-            יומי
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen p-4" style={{ backgroundColor: '#F5F5DC' }} dir="rtl">
+      <Card className="max-w-6xl mx-auto shadow-lg">
+        <CardHeader className="bg-white rounded-t-lg">
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle className="flex items-center gap-2 text-xl font-medium text-amber-900">
+              <Calendar className="h-6 w-6" />
+              <span>{settings.title}</span>
+            </CardTitle>
+            <div className="flex gap-2">
+              <button 
+                className={`px-4 py-2 rounded transition-colors ${
+                  viewMode === 'month' 
+                    ? 'text-white' 
+                    : 'bg-white text-amber-900 border border-amber-100'
+                }`}
+                style={viewMode === 'month' ? { backgroundColor: '#DEB887' } : {}}
+                onClick={() => setViewMode('month')}
+              >
+                חודשי
+              </button>
+              <button 
+                className={`px-4 py-2 rounded transition-colors ${
+                  viewMode === 'day' 
+                    ? 'text-white' 
+                    : 'bg-white text-amber-900 border border-amber-100'
+                }`}
+                style={viewMode === 'day' ? { backgroundColor: '#DEB887' } : {}}
+                onClick={() => setViewMode('day')}
+              >
+                יומי
+              </button>
+            </div>
+          </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <button 
-          className="px-4 py-2 rounded text-white"
-          style={{ backgroundColor: '#DEB887' }}
-          onClick={() => setCurrentDate(new Date())}
-        >
-          היום
-        </button>
-        <div className="flex items-center gap-4 relative">
-          <button className="p-2 hover:bg-gray-100 rounded-full"
-            onClick={() => {
-              const newDate = new Date(currentDate);
-              if (viewMode === 'day') {
-                newDate.setDate(newDate.getDate() - 1); // חץ ימינה מזיז אחורה בזמן ב-RTL
-              } else if (viewMode === 'month') {
-                newDate.setMonth(newDate.getMonth() - 1); // חץ ימינה מזיז אחורה בזמן ב-RTL
-              }
-              setCurrentDate(newDate);
-            }}
-          >
-            <ChevronRight className="h-5 w-5 text-amber-900" />
-          </button>
-          <span 
-            className="font-medium text-amber-900 cursor-pointer hover:underline"
-            onClick={() => setShowMonthPicker(!showMonthPicker)}
-          >
-            {new Intl.DateTimeFormat('he-IL', { 
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            }).format(currentDate)}
-          </span>
-          <button className="p-2 hover:bg-gray-100 rounded-full"
-            onClick={() => {
-              const newDate = new Date(currentDate);
-              if (viewMode === 'day') {
-                newDate.setDate(newDate.getDate() + 1); // חץ שמאלה מזיז קדימה בזמן ב-RTL
-              } else if (viewMode === 'month') {
-                newDate.setMonth(newDate.getMonth() + 1); // חץ שמאלה מזיז קדימה בזמן ב-RTL
-              }
-              setCurrentDate(newDate);
-            }}
-          >
-            <ChevronLeft className="h-5 w-5 text-amber-900" />
-          </button>
-          {showMonthPicker && <MonthPicker />}
-        </div>
-      </div>
-
-      {getView()}
+          <div className="flex items-center justify-between">
+            <button 
+              className="px-4 py-2 rounded text-white"
+              style={{ backgroundColor: '#DEB887' }}
+              onClick={() => setCurrentDate(new Date())}
+            >
+              היום
+            </button>
+            <div className="flex items-center gap-4 relative">
+              <button className="p-2 hover:bg-gray-100 rounded-full"
+                onClick={() => {
+                  const newDate = new Date(currentDate);
+                  if (viewMode === 'day') {
+                    newDate.setDate(newDate.getDate() - 1); // חץ ימינה מזיז אחורה בזמן ב-RTL
+                  } else if (viewMode === 'month') {
+                    newDate.setMonth(newDate.getMonth() - 1); // חץ ימינה מזיז אחורה בזמן ב-RTL
+                  }
+                  setCurrentDate(newDate);
+                }}
+              >
+                <ChevronRight className="h-5 w-5 text-amber-900" />
+              </button>
+              <span 
+                className="font-medium text-amber-900 cursor-pointer hover:underline"
+                onClick={() => setShowMonthPicker(!showMonthPicker)}
+              >
+                {new Intl.DateTimeFormat('he-IL', { 
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                }).format(currentDate)}
+              </span>
+              <button className="p-2 hover:bg-gray-100 rounded-full"
+                onClick={() => {
+                  const newDate = new Date(currentDate);
+                  if (viewMode === 'day') {
+                    newDate.setDate(newDate.getDate() + 1); // חץ שמאלה מזיז קדימה בזמן ב-RTL
+                  } else if (viewMode === 'month') {
+                    newDate.setMonth(newDate.getMonth() + 1); // חץ שמאלה מזיז קדימה בזמן ב-RTL
+                  }
+                  setCurrentDate(newDate);
+                }}
+              >
+                <ChevronLeft className="h-5 w-5 text-amber-900" />
+              </button>
+              {showMonthPicker && <MonthPicker />}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-2">
+          {getView()}
+        </CardContent>
+      </Card>
     </div>
   );
 };
