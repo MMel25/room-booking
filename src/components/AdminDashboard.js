@@ -442,16 +442,8 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
             settings={systemSettings}
             // העברת פונקציית onBookingClick שתקרא לעריכת הזמנה
             onBookingClick={handleAdminCalendarBookingClick}
+            isAdminView={true}
           />
-        </div>
-        
-        <div className="mt-4 bg-amber-50 p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-amber-900 mb-2">הוראות שימוש:</h3>
-          <ul className="list-disc list-inside text-amber-800">
-            <li>לחץ על שעה פנויה ביומן כדי להוסיף הזמנה חדשה</li>
-            <li>לחץ על הזמנה קיימת כדי לערוך או למחוק אותה</li>
-            <li>ניתן לעבור בין תצוגה חודשית ליומית באמצעות הכפתורים בראש היומן</li>
-          </ul>
         </div>
       </div>
     );
