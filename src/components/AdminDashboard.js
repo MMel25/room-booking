@@ -537,7 +537,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
           <CardHeader className="border-b p-4">
             <CardTitle className="text-xl text-amber-900 flex items-center">
               <BarChart2 className="w-5 h-5 ml-2" />
-              סטטיסטיקת הזמנות לפי דירה
+              הזמנות לדירה
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
