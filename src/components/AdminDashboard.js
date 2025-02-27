@@ -487,48 +487,6 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
           </Card>
         </div>
         
-        {/* טבלת הזמנות לפי דירה */}
-        <Card className="bg-white mb-8">
-          <CardHeader className="border-b p-4">
-            <CardTitle className="text-xl text-amber-900 flex items-center">
-              <BarChart2 className="w-5 h-5 ml-2" />
-              סטטיסטיקת הזמנות לפי דירה
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-right">
-                <thead className="bg-amber-50 border-b">
-                  <tr>
-                    <th className="p-3 whitespace-nowrap">מספר דירה</th>
-                    <th className="p-3 whitespace-nowrap">הזמנות עבר</th>
-                    <th className="p-3 whitespace-nowrap">הזמנות עתידיות</th>
-                    <th className="p-3 whitespace-nowrap">סה"כ הזמנות</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apartmentStats.length > 0 ? (
-                    apartmentStats.map((stat, index) => (
-                      <tr key={index} className="border-b hover:bg-amber-50">
-                        <td className="p-3 font-medium">{stat.apartment}</td>
-                        <td className="p-3">{stat.pastBookings}</td>
-                        <td className="p-3">{stat.futureBookings}</td>
-                        <td className="p-3 font-medium">{stat.totalBookings}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="4" className="p-4 text-center text-amber-700">
-                        אין נתונים להצגה
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-        
         {/* טבלת הזמנות קרובות */}
         <Card className="bg-white">
           <CardHeader className="border-b p-4">
@@ -565,6 +523,48 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
                     <tr>
                       <td colSpan="7" className="p-4 text-center text-amber-700">
                         אין הזמנות קרובות
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* טבלת הזמנות לפי דירה */}
+        <Card className="bg-white mt-8">
+          <CardHeader className="border-b p-4">
+            <CardTitle className="text-xl text-amber-900 flex items-center">
+              <BarChart2 className="w-5 h-5 ml-2" />
+              סטטיסטיקת הזמנות לפי דירה
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-right">
+                <thead className="bg-amber-50 border-b">
+                  <tr>
+                    <th className="p-3 whitespace-nowrap">מספר דירה</th>
+                    <th className="p-3 whitespace-nowrap">הזמנות עבר</th>
+                    <th className="p-3 whitespace-nowrap">הזמנות עתידיות</th>
+                    <th className="p-3 whitespace-nowrap">סה"כ הזמנות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {apartmentStats.length > 0 ? (
+                    apartmentStats.map((stat, index) => (
+                      <tr key={index} className="border-b hover:bg-amber-50">
+                        <td className="p-3 font-medium">{stat.apartment}</td>
+                        <td className="p-3">{stat.pastBookings}</td>
+                        <td className="p-3">{stat.futureBookings}</td>
+                        <td className="p-3 font-medium">{stat.totalBookings}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="p-4 text-center text-amber-700">
+                        אין נתונים להצגה
                       </td>
                     </tr>
                   )}
