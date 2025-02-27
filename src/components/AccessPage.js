@@ -59,9 +59,12 @@ const AccessPage = ({ onAuthenticate, settings }) => {
           if (rememberMe) {
             localStorage.setItem('adminRemembered', 'true');
             localStorage.setItem('adminCode', accessCode);
+            // שמירת מצב התחברות כדי לבצע כניסה אוטומטית בעת רענון
+            localStorage.setItem('authState', 'admin');
           } else {
             localStorage.removeItem('adminRemembered');
             localStorage.removeItem('adminCode');
+            localStorage.removeItem('authState');
           }
           onAuthenticate(true); // true מציין שזו כניסת מנהל
         } else {
@@ -75,9 +78,12 @@ const AccessPage = ({ onAuthenticate, settings }) => {
           if (rememberMe) {
             localStorage.setItem('userRemembered', 'true');
             localStorage.setItem('userCode', accessCode);
+            // שמירת מצב התחברות כדי לבצע כניסה אוטומטית בעת רענון
+            localStorage.setItem('authState', 'user');
           } else {
             localStorage.removeItem('userRemembered');
             localStorage.removeItem('userCode');
+            localStorage.removeItem('authState');
           }
           onAuthenticate(false); // false מציין שזו כניסה רגילה
         } else {
