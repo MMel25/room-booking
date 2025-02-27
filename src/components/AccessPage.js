@@ -83,11 +83,19 @@ const AccessPage = ({ onAuthenticate, settings }) => {
           </h1>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-5 bg-white p-6 rounded-lg shadow-md border border-amber-100">
+        <form 
+          onSubmit={handleSubmit} 
+          className="space-y-5 bg-white p-6 rounded-lg shadow-md border border-amber-100"
+          method="post"
+          autoComplete="on"
+        >
           <div>
+            <label htmlFor="accessCode" className="block text-sm font-medium text-amber-700 mb-1">
+              {isAdminMode ? "קוד מנהל" : "קוד גישה"}
+            </label>
             <input
               id="accessCode"
-              type="text"
+              type="password"
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value)}
               className={`w-full p-3 border rounded-md text-right focus:outline-none focus:ring-2 focus:ring-amber-300 transition-all ${
@@ -96,6 +104,8 @@ const AccessPage = ({ onAuthenticate, settings }) => {
               style={{ backgroundColor: '#FFFCF9' }}
               placeholder={isAdminMode ? "הכנס קוד מנהל" : "הכנס קוד גישה"}
               dir="rtl"
+              autoComplete={isAdminMode ? "current-password" : "current-password"}
+              name={isAdminMode ? "admin-password" : "access-password"}
             />
             {error && (
               <p className="mt-2 text-right text-sm text-red-500 flex items-center gap-1">
