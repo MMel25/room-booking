@@ -25,7 +25,10 @@ const AuthDebugger = ({ isAuthenticated, isAdmin }) => {
       currentPath: location.pathname,
       localStorage: {
         isAuthenticated: localStorage.getItem('isAuthenticated'),
-        userRole: localStorage.getItem('userRole')
+        userRole: localStorage.getItem('userRole'),
+        authState: localStorage.getItem('authState'),
+        userRemembered: localStorage.getItem('userRemembered'),
+        adminRemembered: localStorage.getItem('adminRemembered')
       }
     });
   }, [isAuthenticated, isAdmin, location]);
@@ -49,15 +52,54 @@ const App = () => {
   });
   const [bookings, setBookings] = useState([]);
   
-  // ניקוי מלא של אחסון מקומי בטעינה - נאלץ אימות מחדש
+  // בדיקת אפשרות "השאר אותי מחובר" בעת טעינה
   useEffect(() => {
-    // אילוץ התנתקות בעת טעינת האפליקציה
-    console.log('Forcing logout and localStorage cleanup');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
-    setIsAuthenticated(false);
-    setIsAdmin(false);
-  }, []);
+    const checkRememberedLogin = () => {
+      const authState = localStorage.getItem('authState');
+      
+      if (authState) {
+        console.log('Found remembered login state:', authState);
+        
+        if (authState === 'admin' && localStorage.getItem('adminRemembered') === 'true') {
+          const savedAdminCode = localStorage.getItem('adminCode');
+          if (savedAdminCode && Number(savedAdminCode) === Number(settings.adminCode)) {
+            console.log('Auto-login as admin');
+            setIsAuthenticated(true);
+            setIsAdmin(true);
+            localStorage.setItem('isAuthenticated', 'true');
+            localStorage.setItem('userRole', 'admin');
+            return true;
+          }
+        } else if (authState === 'user' && localStorage.getItem('userRemembered') === 'true') {
+          const savedUserCode = localStorage.getItem('userCode');
+          if (savedUserCode && Number(savedUserCode) === Number(settings.accessCode)) {
+            console.log('Auto-login as regular user');
+            setIsAuthenticated(true);
+            setIsAdmin(false);
+            localStorage.setItem('isAuthenticated', 'true');
+            localStorage.setItem('userRole', 'user');
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    };
+    
+    // אם האתחול הושלם, בדוק אפשרות כניסה אוטומטית
+    if (isInitialized) {
+      const wasAutoLoggedIn = checkRememberedLogin();
+      
+      // רק אם אין כניסה אוטומטית, אז נקה את המצב הקיים
+      if (!wasAutoLoggedIn) {
+        console.log('No auto-login, clearing authentication state');
+        setIsAuthenticated(false);
+        setIsAdmin(false);
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userRole');
+      }
+    }
+  }, [isInitialized, settings]);
 
   // אתחול ראשוני וטעינת נתונים
   useEffect(() => {
@@ -111,8 +153,15 @@ const App = () => {
     console.log('Logging out');
     setIsAuthenticated(false);
     setIsAdmin(false);
+    
+    // ניקוי כל המידע המקומי כולל "השאר אותי מחובר"
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('authState');
+    localStorage.removeItem('adminRemembered');
+    localStorage.removeItem('adminCode');
+    localStorage.removeItem('userRemembered');
+    localStorage.removeItem('userCode');
   };
 
   // אם האתחול עדיין לא הסתיים, נציג מסך טעינה
