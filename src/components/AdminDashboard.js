@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Home, Settings, Calendar, LogOut, User, Phone, ClipboardList, Edit, Menu, X } from 'lucide-react';
+import { Home, Settings, Calendar, LogOut, User, Phone, ClipboardList, Edit, Menu, X, BarChart2 } from 'lucide-react';
 
 import BookingManagement from './BookingManagement';
 import SystemSettings from './SystemSettings';
@@ -251,6 +251,47 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
     };
   };
 
+  // פונקציה חדשה לחישוב סטטיסטיקה לפי דירה
+  const getApartmentStatistics = () => {
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    
+    // יצירת אובייקט מאגד לנתונים לפי דירה
+    const apartmentStats = {};
+    
+    // מעבר על כל ההזמנות וקיבוץ לפי דירה
+    bookings.forEach(booking => {
+      const apartmentNumber = booking.apartment.toString();
+      
+      // אם אין עדיין רשומה לדירה, נייצר אחת חדשה
+      if (!apartmentStats[apartmentNumber]) {
+        apartmentStats[apartmentNumber] = {
+          pastBookings: 0,
+          futureBookings: 0,
+          totalBookings: 0
+        };
+      }
+      
+      // האם ההזמנה היא עתידית (כולל היום) או עבר
+      if (booking.date >= todayString) {
+        apartmentStats[apartmentNumber].futureBookings++;
+      } else {
+        apartmentStats[apartmentNumber].pastBookings++;
+      }
+      
+      // הגדלת מונה הזמנות כולל
+      apartmentStats[apartmentNumber].totalBookings++;
+    });
+    
+    // המרה לטבלה ממוינת לפי מספר דירה
+    return Object.entries(apartmentStats)
+      .map(([apartment, stats]) => ({
+        apartment: apartment,
+        ...stats
+      }))
+      .sort((a, b) => parseInt(a.apartment) - parseInt(b.apartment));
+  };
+
   // המרת מספר יום לשם היום בעברית
   const getHebrewDayName = (dateString) => {
     const date = new Date(dateString);
@@ -395,6 +436,7 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
   // רינדור תצוגת הדשבורד הראשי
   const renderDashboard = () => {
     const stats = getStatistics();
+    const apartmentStats = getApartmentStatistics();
     
     return (
       <div className="p-4">
@@ -444,6 +486,48 @@ const AdminDashboard = ({ bookings: initialBookings, settings, onLogout }) => {
             </CardContent>
           </Card>
         </div>
+        
+        {/* טבלת הזמנות לפי דירה */}
+        <Card className="bg-white mb-8">
+          <CardHeader className="border-b p-4">
+            <CardTitle className="text-xl text-amber-900 flex items-center">
+              <BarChart2 className="w-5 h-5 ml-2" />
+              סטטיסטיקת הזמנות לפי דירה
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-right">
+                <thead className="bg-amber-50 border-b">
+                  <tr>
+                    <th className="p-3 whitespace-nowrap">מספר דירה</th>
+                    <th className="p-3 whitespace-nowrap">הזמנות עבר</th>
+                    <th className="p-3 whitespace-nowrap">הזמנות עתידיות</th>
+                    <th className="p-3 whitespace-nowrap">סה"כ הזמנות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {apartmentStats.length > 0 ? (
+                    apartmentStats.map((stat, index) => (
+                      <tr key={index} className="border-b hover:bg-amber-50">
+                        <td className="p-3 font-medium">{stat.apartment}</td>
+                        <td className="p-3">{stat.pastBookings}</td>
+                        <td className="p-3">{stat.futureBookings}</td>
+                        <td className="p-3 font-medium">{stat.totalBookings}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="p-4 text-center text-amber-700">
+                        אין נתונים להצגה
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
         
         {/* טבלת הזמנות קרובות */}
         <Card className="bg-white">
