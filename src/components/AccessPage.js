@@ -6,6 +6,29 @@ const AccessPage = ({ onAuthenticate, settings }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  
+  // בדיקה האם קיים מידע שמור בדפדפן בעת טעינת הדף
+  React.useEffect(() => {
+    // בדיקה האם המשתמש בחר לזכור אותו בעבר
+    const userRemembered = localStorage.getItem('userRemembered') === 'true';
+    const adminRemembered = localStorage.getItem('adminRemembered') === 'true';
+    
+    // אם יש נתונים שמורים, נטען אותם בהתאם למצב
+    if (isAdminMode && adminRemembered) {
+      const savedCode = localStorage.getItem('adminCode');
+      if (savedCode) {
+        setAccessCode(savedCode);
+        setRememberMe(true);
+      }
+    } else if (!isAdminMode && userRemembered) {
+      const savedCode = localStorage.getItem('userCode');
+      if (savedCode) {
+        setAccessCode(savedCode);
+        setRememberMe(true);
+      }
+    }
+  }, [isAdminMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +55,14 @@ const AccessPage = ({ onAuthenticate, settings }) => {
         // בדיקת קוד מנהל
         if (numericCode === settingsAdminCode) {
           console.log('Admin access granted');
+          // שמירת העדפת זכירת המשתמש אם נבחרה האפשרות
+          if (rememberMe) {
+            localStorage.setItem('adminRemembered', 'true');
+            localStorage.setItem('adminCode', accessCode);
+          } else {
+            localStorage.removeItem('adminRemembered');
+            localStorage.removeItem('adminCode');
+          }
           onAuthenticate(true); // true מציין שזו כניסת מנהל
         } else {
           setError('קוד מנהל שגוי');
@@ -40,6 +71,14 @@ const AccessPage = ({ onAuthenticate, settings }) => {
         // בדיקת קוד רגיל
         if (numericCode === settingsAccessCode) {
           console.log('User access granted');
+          // שמירת העדפת זכירת המשתמש אם נבחרה האפשרות
+          if (rememberMe) {
+            localStorage.setItem('userRemembered', 'true');
+            localStorage.setItem('userCode', accessCode);
+          } else {
+            localStorage.removeItem('userRemembered');
+            localStorage.removeItem('userCode');
+          }
           onAuthenticate(false); // false מציין שזו כניסה רגילה
         } else {
           setError('קוד גישה שגוי');
@@ -113,6 +152,21 @@ const AccessPage = ({ onAuthenticate, settings }) => {
                 {error}
               </p>
             )}
+          </div>
+          
+          <div className="flex items-center">
+            <input
+              id="rememberMe"
+              name="rememberMe"
+              type="checkbox"
+              className="h-4 w-4 border-amber-300 rounded text-amber-600 focus:ring-amber-500"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
+                          <label htmlFor="rememberMe" className="mr-2 block text-sm text-amber-700">
+              השאר אותי מחובר
+            </label>
+
           </div>
 
           <button
