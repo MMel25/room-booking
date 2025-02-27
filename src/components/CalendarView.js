@@ -331,14 +331,6 @@ const CalendarView = ({
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <button 
-                className="px-4 py-2 rounded text-white"
-                style={{ backgroundColor: '#DEB887' }}
-                onClick={() => setCurrentDate(new Date())}
-              >
-                היום
-              </button>
-              
               {/* כפתור התנתקות */}
               {onLogout && (
                 <button
@@ -350,6 +342,14 @@ const CalendarView = ({
                   <span className="hidden sm:inline">התנתק</span>
                 </button>
               )}
+              
+              <button 
+                className="px-4 py-2 rounded text-white"
+                style={{ backgroundColor: '#DEB887' }}
+                onClick={() => setCurrentDate(new Date())}
+              >
+                היום
+              </button>
             </div>
             <div className="flex items-center gap-4 relative">
               <button className="p-2 hover:bg-gray-100 rounded-full"
