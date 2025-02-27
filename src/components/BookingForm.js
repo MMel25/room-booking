@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-import { ChevronRight, Calendar, Clock } from 'lucide-react';
+import { ChevronRight, Calendar, Clock, CheckCircle } from 'lucide-react';
 
 const BookingForm = ({ 
   onClose, 
@@ -22,6 +22,9 @@ const BookingForm = ({
     purpose: '',
     acceptTerms: false
   });
+  
+  // הוספת מצב חדש להצגת הודעת הצלחה
+  const [successMessage, setSuccessMessage] = useState("");
 
   // עדכון הנתונים אם מדובר בעריכה
   useEffect(() => {
@@ -88,6 +91,14 @@ const BookingForm = ({
     
     // שליחת הנתונים לפונקציה החיצונית
     onSubmit(bookingToSubmit);
+    
+    // הצג הודעת הצלחה
+    setSuccessMessage("הזמנתך נקלטה בהצלחה");
+    
+    // סגור את הטופס אחרי 2 שניות
+    setTimeout(() => {
+      onClose();
+    }, 2000);
   };
 
   return (
@@ -117,6 +128,14 @@ const BookingForm = ({
           </div>
         </CardHeader>
         <CardContent className="p-4">
+          {/* הודעת הצלחה */}
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md flex items-center gap-2 transition-opacity duration-300">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span className="font-medium">{successMessage}</span>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* שדה תאריך */}
             <div>
