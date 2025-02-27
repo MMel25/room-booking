@@ -1,14 +1,16 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
-import { ChevronRight, ChevronLeft, Calendar, Plus, Edit, Trash } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Calendar, Plus, Edit, Trash, LogOut } from 'lucide-react';
 
 const CalendarView = ({ 
   bookings = [], 
   onTimeSelect, 
   onQuickBooking, 
   settings,
+  onLogout,
   onBookingClick = null,  // פונקציה לטיפול בלחיצה על הזמנה קיימת
-  isAdminView = false     // פרמטר לציון מצב תצוגת מנהל
+  isAdminView = false,    // פרמטר לציון מצב תצוגת מנהל
+  isAdmin = false         // פרמטר לציון אם המשתמש הוא מנהל
 }) => {
   const [viewMode, setViewMode] = useState('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -293,12 +295,15 @@ const CalendarView = ({
     <div className="min-h-screen p-4" style={{ backgroundColor: '#F5F5DC' }} dir="rtl">
       <Card className="max-w-6xl mx-auto shadow-lg">
         <CardHeader className="bg-white rounded-t-lg">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="flex items-center gap-2 text-xl font-medium text-amber-900">
-              <Calendar className="h-6 w-6" />
-              <span>{settings.title}</span>
-            </CardTitle>
-            <div className="flex gap-2">
+          <div className="flex flex-wrap items-center justify-between mb-4">
+            <div className="flex items-center mb-2 md:mb-0">
+              <CardTitle className="flex items-center gap-2 text-xl font-medium text-amber-900">
+                <Calendar className="h-6 w-6" />
+                <span>{settings.title}</span>
+              </CardTitle>
+            </div>
+            
+            <div className="flex items-center gap-2">
               <button 
                 className={`px-4 py-2 rounded transition-colors ${
                   viewMode === 'month' 
@@ -325,13 +330,27 @@ const CalendarView = ({
           </div>
 
           <div className="flex items-center justify-between">
-            <button 
-              className="px-4 py-2 rounded text-white"
-              style={{ backgroundColor: '#DEB887' }}
-              onClick={() => setCurrentDate(new Date())}
-            >
-              היום
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                className="px-4 py-2 rounded text-white"
+                style={{ backgroundColor: '#DEB887' }}
+                onClick={() => setCurrentDate(new Date())}
+              >
+                היום
+              </button>
+              
+              {/* כפתור התנתקות */}
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-700 transition-colors flex items-center gap-1"
+                  title="התנתק"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">התנתק</span>
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-4 relative">
               <button className="p-2 hover:bg-gray-100 rounded-full"
                 onClick={() => {
