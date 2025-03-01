@@ -272,7 +272,7 @@ const CalendarView = ({
                     <span>{`ד.${booking.apartment}`}</span>
                   )
                 ) : (
-                  <span>פנוי</span>
+                  !isDateHistorical ? <span>פנוי</span> : <span></span>
                 )}
               </div>
               {!isBooked && !isDateHistorical && (
