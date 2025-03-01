@@ -36,6 +36,16 @@ const CalendarView = ({
     return `${year}-${month}-${day}`;
   };
 
+  // פונקציה לבדיקה האם תאריך הוא היסטורי (לפני היום)
+  const isHistoricalDate = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // איפוס השעה ליום הנוכחי בשעה 00:00:00
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0); // איפוס השעה לתאריך הנבדק
+    
+    return checkDate < today;
+  };
+
   const isTimeBooked = (date, hour) => {
     return bookings.some(booking => {
       const startHour = parseInt(booking.startTime);
@@ -176,6 +186,7 @@ const CalendarView = ({
         {daysInMonth().map((day, index) => {
           const isCurrentMonth = day.getMonth() === currentDate.getMonth();
           const hasBookings = bookings.some(b => b.date === formatDate(day));
+          const isPastDate = isHistoricalDate(day);
           
           return (
             <div 
@@ -184,17 +195,20 @@ const CalendarView = ({
                 p-2 min-h-[100px] border rounded cursor-pointer
                 ${isCurrentMonth ? '' : 'opacity-50'}
                 ${hasBookings ? 'bg-amber-50' : 'hover:bg-amber-50/30'}
+                ${isPastDate ? 'bg-gray-100 cursor-not-allowed' : ''}
               `}
               onClick={() => {
-                setViewMode('day');
-                setCurrentDate(day);
+                if (!isPastDate) {
+                  setViewMode('day');
+                  setCurrentDate(day);
+                }
               }}
             >
-              <div className="font-medium text-amber-900">
+              <div className={`font-medium ${isPastDate ? 'text-gray-500' : 'text-amber-900'}`}>
                 {day.getDate()}
               </div>
               {hasBookings && (
-                <div className="mt-1 text-sm text-amber-800">
+                <div className={`mt-1 text-sm ${isPastDate ? 'text-gray-500' : 'text-amber-800'}`}>
                   יש הזמנות
                 </div>
               )}
@@ -206,86 +220,92 @@ const CalendarView = ({
   };
 
   // תצוגה יומית עם יכולת ללחוץ על הזמנות קיימות
-  const DailyView = () => (
-    <div 
-      className="h-[600px] overflow-y-auto bg-white rounded-lg" 
-      dir="rtl"
-      style={{ 
-        touchAction: 'auto',
-        userSelect: 'none',
-        WebkitUserSelect: 'none'
-      }}
-    >
-      {hours.map(hour => {
-        const isBooked = isTimeBooked(currentDate, hour);
-        const booking = getBookingForTime(currentDate, hour);
-        
-        return (
-          <div 
-            key={hour}
-            className={`flex border-b p-3 cursor-pointer transition-all relative ${
-              isBooked ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-amber-50/30'
-            }`}
-            onClick={() => {
-              if (isBooked && onBookingClick) {
-                // אם יש הזמנה וקיימת פונקציית onBookingClick, נפעיל אותה עם ההזמנה
-                onBookingClick(booking);
-              } else if (!isBooked) {
-                // אם אין הזמנה, נפעיל את פונקציית onTimeSelect הרגילה
-                onTimeSelect(formatDate(currentDate), `${hour}:00`);
-              }
-            }}
-          >
-            <div className="w-20 text-right font-medium text-amber-900">
-              {hour}:00
-            </div>
-            <div className="mr-4 text-amber-900 flex-1">
-              {isBooked ? (
-                isAdminView ? (
-                  // תצוגה מורחבת למנהל
-                  <div className="flex flex-col">
-                    <div className="font-medium">{`ד.${booking.apartment} - ${booking.name}`}</div>
-                    <div className="text-sm text-amber-700">{`${booking.startTime}:00 - ${booking.endTime}:00`}</div>
-                    <div className="text-sm text-amber-700">{booking.purpose}</div>
-                  </div>
+  const DailyView = () => {
+    const isDateHistorical = isHistoricalDate(currentDate);
+
+    return (
+      <div 
+        className="h-[600px] overflow-y-auto bg-white rounded-lg" 
+        dir="rtl"
+        style={{ 
+          touchAction: 'auto',
+          userSelect: 'none',
+          WebkitUserSelect: 'none'
+        }}
+      >
+        {hours.map(hour => {
+          const isBooked = isTimeBooked(currentDate, hour);
+          const booking = getBookingForTime(currentDate, hour);
+          
+          return (
+            <div 
+              key={hour}
+              className={`flex border-b p-3 relative ${
+                isBooked ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-amber-50/30'
+              } ${isDateHistorical ? 'cursor-default' : 'cursor-pointer'}`}
+              onClick={() => {
+                if (!isDateHistorical) {
+                  if (isBooked && onBookingClick) {
+                    // אם יש הזמנה וקיימת פונקציית onBookingClick, נפעיל אותה עם ההזמנה
+                    onBookingClick(booking);
+                  } else if (!isBooked) {
+                    // אם אין הזמנה, נפעיל את פונקציית onTimeSelect הרגילה
+                    onTimeSelect(formatDate(currentDate), `${hour}:00`);
+                  }
+                }
+              }}
+            >
+              <div className="w-20 text-right font-medium text-amber-900">
+                {hour}:00
+              </div>
+              <div className="mr-4 text-amber-900 flex-1">
+                {isBooked ? (
+                  isAdminView ? (
+                    // תצוגה מורחבת למנהל
+                    <div className="flex flex-col">
+                      <div className="font-medium">{`ד.${booking.apartment} - ${booking.name}`}</div>
+                      <div className="text-sm text-amber-700">{`${booking.startTime}:00 - ${booking.endTime}:00`}</div>
+                      <div className="text-sm text-amber-700">{booking.purpose}</div>
+                    </div>
+                  ) : (
+                    // תצוגה מינימלית למשתמש רגיל
+                    <span>{`ד.${booking.apartment}`}</span>
+                  )
                 ) : (
-                  // תצוגה מינימלית למשתמש רגיל
-                  <span>{`ד.${booking.apartment}`}</span>
-                )
-              ) : (
-                <span>פנוי</span>
-              )}
-            </div>
-            {!isBooked && (
-              <button 
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-amber-100 hover:bg-amber-200 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation(); // מניעת הפעלת הפונקציה של אלמנט האב
-                  onQuickBooking(formatDate(currentDate), `${hour}:00`);
-                }}
-              >
-                <Plus className="h-4 w-4 text-amber-900" />
-              </button>
-            )}
-            {isBooked && onBookingClick && isAdminView && (
-              <div className="absolute left-2 top-1/2 -translate-y-1/2 flex gap-1">
+                  <span>פנוי</span>
+                )}
+              </div>
+              {!isBooked && !isDateHistorical && (
                 <button 
-                  className="p-1 rounded-full bg-amber-100 hover:bg-amber-200 transition-colors"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-amber-100 hover:bg-amber-200 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation(); // מניעת הפעלת הפונקציה של אלמנט האב
-                    onBookingClick(booking);
+                    onQuickBooking(formatDate(currentDate), `${hour}:00`);
                   }}
-                  title="ערוך הזמנה"
                 >
-                  <Edit className="h-4 w-4 text-amber-900" />
+                  <Plus className="h-4 w-4 text-amber-900" />
                 </button>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+              )}
+              {isBooked && onBookingClick && isAdminView && (
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 flex gap-1">
+                  <button 
+                    className="p-1 rounded-full bg-amber-100 hover:bg-amber-200 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation(); // מניעת הפעלת הפונקציה של אלמנט האב
+                      onBookingClick(booking);
+                    }}
+                    title="ערוך הזמנה"
+                  >
+                    <Edit className="h-4 w-4 text-amber-900" />
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const getView = () => {
     switch(viewMode) {
