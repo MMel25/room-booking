@@ -23,16 +23,20 @@ const BookingForm = ({
     if (selectedTime) {
       // נסה לחלץ את השעה בכמה דרכים אפשריות
       if (typeof selectedTime === 'string') {
-        // אם זה מחרוזת בפורמט של שעה (כמו "14:00")
+        // אם זה מחרוזת בפורמט של שעה (כמו "14:00" או "08:00")
         if (selectedTime.includes(':')) {
-          return selectedTime.split(':')[0];
+          // שמירה על האפס בהתחלה אם קיים, למשל "08" נשאר "08" ולא הופך ל-"8"
+          const hourPart = selectedTime.split(':')[0];
+          return hourPart;
         }
-        // אם זו מחרוזת אבל רק מספר (כמו "14")
+        // אם זו מחרוזת אבל רק מספר (כמו "14" או "08")
         return selectedTime;
       }
       // אם זה מספר
       if (typeof selectedTime === 'number') {
-        return selectedTime.toString();
+        // במקרה של מספר, נוודא שמספרים כמו 8 יהפכו ל-"08" אם צריך
+        const hourStr = selectedTime.toString();
+        return hourStr.length === 1 ? `0${hourStr}` : hourStr;
       }
     }
     
