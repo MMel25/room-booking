@@ -24,10 +24,26 @@ const BookingForm = ({
     purpose: '',
     acceptTerms: false
   });
+  
+  // הוספת מצב חדש להצגת הודעת הצלחה
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // עדכון מיידי כשהקומפוננטה נטענת - פעם אחת בלבד
   useEffect(() => {
-    if (!isEditMode) {
+    if (isEditMode && initialData) {
+      // מדפיס למטרות דיבוג
+      console.log('Loading initial data for edit:', initialData);
+      
+      setFormData({
+        date: initialData.date || selectedDate || '',
+        startTime: initialData.startTime || '',
+        endTime: initialData.endTime || '',
+        apartment: initialData.apartment || '',
+        name: initialData.name || '',
+        phone: initialData.phone || '',
+        purpose: initialData.purpose || '',
+        acceptTerms: true // בעריכה כבר אישרו את התנאים בעבר
+      });
+    } else if (!isEditMode) {
       console.log('Initial load with selectedTime:', selectedTime);
       
       // טיפול בשעה שנבחרה ביומן
