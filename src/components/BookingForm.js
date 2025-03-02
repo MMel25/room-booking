@@ -11,10 +11,42 @@ const BookingForm = ({
   isEditMode = false,
   initialData = null
 }) => {
-  // מצב ראשוני של הטופס
+  // מדפיס ערכים שהתקבלו לצורך דיבוג
+  console.log('BookingForm props received:', { selectedDate, selectedTime, isEditMode });
+  
+  // חילוץ שעת התחלה מהפרופס או מהמצב הראשוני
+  const extractStartTime = () => {
+    if (isEditMode && initialData && initialData.startTime) {
+      return initialData.startTime;
+    }
+    
+    if (selectedTime) {
+      // נסה לחלץ את השעה בכמה דרכים אפשריות
+      if (typeof selectedTime === 'string') {
+        // אם זה מחרוזת בפורמט של שעה (כמו "14:00")
+        if (selectedTime.includes(':')) {
+          return selectedTime.split(':')[0];
+        }
+        // אם זו מחרוזת אבל רק מספר (כמו "14")
+        return selectedTime;
+      }
+      // אם זה מספר
+      if (typeof selectedTime === 'number') {
+        return selectedTime.toString();
+      }
+    }
+    
+    // ברירת מחדל - מחרוזת ריקה
+    return '';
+  };
+  
+  // מצב ראשוני של הטופס עם חילוץ שעת התחלה באופן ברור יותר
+  const initialStartTime = extractStartTime();
+  console.log('Initial start time extracted:', initialStartTime);
+  
   const [formData, setFormData] = useState({
     date: selectedDate || '',
-    startTime: selectedTime ? selectedTime.split(':')[0] : '',
+    startTime: initialStartTime,
     endTime: '',
     apartment: '',
     name: '',
@@ -26,38 +58,38 @@ const BookingForm = ({
   // הוספת מצב חדש להצגת הודעת הצלחה
   const [successMessage, setSuccessMessage] = useState("");
 
-  // עדכון הנתונים אם מדובר בעריכה או בהזמנה חדשה עם זמן שנבחר
+  // וידוא שהשעה מעודכנת בכל שינוי
   useEffect(() => {
+    console.log('useEffect triggered - props changed:', { selectedDate, selectedTime });
+    
     if (isEditMode && initialData) {
       // מדפיס למטרות דיבוג
       console.log('Loading initial data for edit:', initialData);
       
-      setFormData({
-        date: initialData.date || selectedDate || '',
-        startTime: initialData.startTime || (selectedTime ? selectedTime.split(':')[0] : ''),
-        endTime: initialData.endTime || '',
-        apartment: initialData.apartment || '',
-        name: initialData.name || '',
-        phone: initialData.phone || '',
-        purpose: initialData.purpose || '',
-        acceptTerms: true // בעריכה כבר אישרו את התנאים בעבר
-      });
+      setFormData(prev => ({
+        date: initialData.date || selectedDate || prev.date,
+        startTime: initialData.startTime || extractStartTime() || prev.startTime,
+        endTime: initialData.endTime || prev.endTime,
+        apartment: initialData.apartment || prev.apartment,
+        name: initialData.name || prev.name,
+        phone: initialData.phone || prev.phone,
+        purpose: initialData.purpose || prev.purpose,
+        acceptTerms: initialData.acceptTerms || true
+      }));
     } else {
       // אם זו הזמנה חדשה - מעדכן אוטומטית את שעת ההתחלה
-      console.log('Setting initial time:', selectedTime, 'and date:', selectedDate);
+      const newStartTime = extractStartTime();
+      console.log('New booking - setting time to:', newStartTime);
       
-      setFormData(prev => ({
-        ...prev,
-        startTime: selectedTime ? selectedTime.split(':')[0] : prev.startTime,
-        date: selectedDate || prev.date
-      }));
+      if (newStartTime) {
+        setFormData(prev => ({
+          ...prev,
+          startTime: newStartTime,
+          date: selectedDate || prev.date
+        }));
+      }
     }
   }, [isEditMode, initialData, selectedDate, selectedTime]);
-  
-  // הוספת בדיקת console.log לצורך דיבוג של ערכי זמן ותאריך שמתקבלים
-  useEffect(() => {
-    console.log('Current props - selectedTime:', selectedTime, 'selectedDate:', selectedDate);
-  }, []);
 
   const apartmentOptions = Array.from({ length: 37 }, (_, i) => i + 1);
 
