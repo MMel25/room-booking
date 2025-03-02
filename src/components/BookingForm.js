@@ -17,26 +17,31 @@ const BookingForm = ({
   // חילוץ שעת התחלה מהפרופס או מהמצב הראשוני
   const extractStartTime = () => {
     if (isEditMode && initialData && initialData.startTime) {
+      // וודא שהשעה מהמידע הראשוני היא בפורמט עקבי
+      const hour = parseInt(initialData.startTime);
+      if (!isNaN(hour)) {
+        return hour < 10 ? `0${hour}` : `${hour}`;
+      }
       return initialData.startTime;
     }
     
     if (selectedTime) {
-      // נסה לחלץ את השעה בכמה דרכים אפשריות
+      let hour;
+      
+      // חלץ את השעה מהפורמט המתקבל
       if (typeof selectedTime === 'string') {
-        // אם זה מחרוזת בפורמט של שעה (כמו "14:00" או "08:00")
         if (selectedTime.includes(':')) {
-          // שמירה על האפס בהתחלה אם קיים, למשל "08" נשאר "08" ולא הופך ל-"8"
-          const hourPart = selectedTime.split(':')[0];
-          return hourPart;
+          hour = parseInt(selectedTime.split(':')[0]);
+        } else {
+          hour = parseInt(selectedTime);
         }
-        // אם זו מחרוזת אבל רק מספר (כמו "14" או "08")
-        return selectedTime;
+      } else if (typeof selectedTime === 'number') {
+        hour = selectedTime;
       }
-      // אם זה מספר
-      if (typeof selectedTime === 'number') {
-        // במקרה של מספר, נוודא שמספרים כמו 8 יהפכו ל-"08" אם צריך
-        const hourStr = selectedTime.toString();
-        return hourStr.length === 1 ? `0${hourStr}` : hourStr;
+      
+      // המר לפורמט עקבי של מחרוזת עם אפס מוביל לשעות חד-ספרתיות
+      if (!isNaN(hour)) {
+        return hour < 10 ? `0${hour}` : `${hour}`;
       }
     }
     
