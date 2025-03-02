@@ -13,10 +13,10 @@ const BookingForm = ({
 }) => {
   console.log('BookingForm rendered with selectedTime:', selectedTime);
   
-  // מצב ראשוני של הטופס - ללא התייחסות ל-selectedTime כאן
+  // מצב ראשוני של הטופס - עדכני יותר
   const [formData, setFormData] = useState({
     date: selectedDate || '',
-    startTime: '',  // מתחיל ריק, ומעודכן בuseEffect
+    startTime: '',  // נתחיל עם ערך ריק
     endTime: '',
     apartment: '',
     name: '',
@@ -24,58 +24,40 @@ const BookingForm = ({
     purpose: '',
     acceptTerms: false
   });
-  
-  // הוספת מצב חדש להצגת הודעת הצלחה
-  const [successMessage, setSuccessMessage] = useState("");
 
-  // useEffect שמופעל פעם אחת לאחר הטעינה הראשונית
+  // עדכון מיידי כשהקומפוננטה נטענת - פעם אחת בלבד
   useEffect(() => {
-    console.log('Initial useEffect run');
-    
-    // במצב עריכה
-    if (isEditMode && initialData) {
-      console.log('Loading initial data for edit:', initialData);
-      setFormData({
-        date: initialData.date || selectedDate || '',
-        startTime: initialData.startTime || '',
-        endTime: initialData.endTime || '',
-        apartment: initialData.apartment || '',
-        name: initialData.name || '',
-        phone: initialData.phone || '',
-        purpose: initialData.purpose || '',
-        acceptTerms: true // בעריכה כבר אישרו את התנאים בעבר
-      });
-    } 
-    // במצב הזמנה חדשה
-    else {
-      console.log('Setting up new booking with time:', selectedTime);
-      // אם יש שעה שנבחרה, מעדכנים את השדה
+    if (!isEditMode) {
+      console.log('Initial load with selectedTime:', selectedTime);
+      
+      // טיפול בשעה שנבחרה ביומן
       if (selectedTime) {
-        let hour = '';
+        let timeValue = '';
         
-        // הטיפול בפורמטים שונים של שעות
+        // המרה לפורמט המתאים לסלקט
         if (typeof selectedTime === 'string') {
           if (selectedTime.includes(':')) {
-            hour = selectedTime.split(':')[0];
+            // אם יש בו נקודתיים, קח את החלק לפני ה:
+            timeValue = parseInt(selectedTime.split(':')[0]).toString();
           } else {
-            hour = selectedTime;
+            // אם זה רק מספר כמחרוזת
+            timeValue = parseInt(selectedTime).toString();
           }
         } else if (typeof selectedTime === 'number') {
-          hour = selectedTime.toString();
+          timeValue = selectedTime.toString();
         }
         
-        console.log('Extracted hour:', hour);
+        console.log('Setting startTime to:', timeValue);
         
-        // עדכון מיידי של שדה שעת ההתחלה
-        setFormData(prevData => ({
-          ...prevData,
-          startTime: hour,
+        // עדכון ישיר בלי תלות בהשוואות מורכבות
+        setFormData(prev => ({
+          ...prev,
+          startTime: timeValue,
           date: selectedDate || ''
         }));
       }
     }
-  // רץ פעם אחת בלבד בטעינת הקומפוננטה
-  }, []);  
+  }, []); // רץ פעם אחת בלבד  
 
   const apartmentOptions = Array.from({ length: 37 }, (_, i) => i + 1);
 
