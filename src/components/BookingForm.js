@@ -42,15 +42,22 @@ const BookingForm = ({
         purpose: initialData.purpose || '',
         acceptTerms: true // בעריכה כבר אישרו את התנאים בעבר
       });
-    } else if (selectedTime) {
-      // אם זו הזמנה חדשה וזמן נבחר - מעדכן אוטומטית את שעת ההתחלה
+    } else {
+      // אם זו הזמנה חדשה - מעדכן אוטומטית את שעת ההתחלה
+      console.log('Setting initial time:', selectedTime, 'and date:', selectedDate);
+      
       setFormData(prev => ({
         ...prev,
-        startTime: selectedTime.split(':')[0],
-        date: selectedDate || ''
+        startTime: selectedTime ? selectedTime.split(':')[0] : prev.startTime,
+        date: selectedDate || prev.date
       }));
     }
   }, [isEditMode, initialData, selectedDate, selectedTime]);
+  
+  // הוספת בדיקת console.log לצורך דיבוג של ערכי זמן ותאריך שמתקבלים
+  useEffect(() => {
+    console.log('Current props - selectedTime:', selectedTime, 'selectedDate:', selectedDate);
+  }, []);
 
   const apartmentOptions = Array.from({ length: 37 }, (_, i) => i + 1);
 
