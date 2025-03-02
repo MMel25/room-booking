@@ -26,7 +26,7 @@ const BookingForm = ({
   // הוספת מצב חדש להצגת הודעת הצלחה
   const [successMessage, setSuccessMessage] = useState("");
 
-  // עדכון הנתונים אם מדובר בעריכה
+  // עדכון הנתונים אם מדובר בעריכה או בהזמנה חדשה עם זמן שנבחר
   useEffect(() => {
     if (isEditMode && initialData) {
       // מדפיס למטרות דיבוג
@@ -42,6 +42,13 @@ const BookingForm = ({
         purpose: initialData.purpose || '',
         acceptTerms: true // בעריכה כבר אישרו את התנאים בעבר
       });
+    } else if (selectedTime) {
+      // אם זו הזמנה חדשה וזמן נבחר - מעדכן אוטומטית את שעת ההתחלה
+      setFormData(prev => ({
+        ...prev,
+        startTime: selectedTime.split(':')[0],
+        date: selectedDate || ''
+      }));
     }
   }, [isEditMode, initialData, selectedDate, selectedTime]);
 
@@ -102,207 +109,209 @@ const BookingForm = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 overflow-y-auto z-50" dir="rtl">
-      <Card className="w-full max-w-md my-8">
-        <CardHeader className="bg-white rounded-t-lg border-b">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-medium text-amber-800">
-              {isEditMode ? 'עריכת הזמנה' : 'הזמנת חדר'}
-            </CardTitle>
-            <button 
-              onClick={onClose}
-              className="p-2 hover:bg-amber-50 rounded-full transition-colors"
-            >
-              <ChevronRight className="h-5 w-5 text-amber-900" />
-            </button>
-          </div>
-          <div className="text-sm text-amber-700 flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span>{formData.date}</span>
-            {formData.startTime && (
-              <>
-                <Clock className="h-4 w-4 ml-2" />
-                <span>{formData.startTime}:00</span>
-              </>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="p-4">
-          {/* הודעת הצלחה */}
-          {successMessage && (
-            <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md flex items-center gap-2 transition-opacity duration-300">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <span className="font-medium">{successMessage}</span>
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* שדה תאריך */}
-            <div>
-              <label className="block mb-1 text-amber-800">
-                תאריך
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                required
-              />
-            </div>
-
-            {/* שדה שעת התחלה */}
-            <div>
-              <label className="block mb-1 text-amber-800">
-                שעת התחלה
-                <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.startTime}
-                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                required
-              >
-                <option value="">בחר שעת התחלה</option>
-                {Array.from({ length: 24 }, (_, i) => i).map(hour => (
-                  <option key={hour} value={hour}>{hour}:00</option>
-                ))}
-              </select>
-            </div>
-
-            {/* שדה שעת סיום */}
-            <div>
-              <label className="block mb-1 text-amber-800">
-                שעת סיום
-                <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.endTime}
-                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                required
-              >
-                <option value="">בחר שעת סיום</option>
-                {Array.from({ length: 24 - parseInt(formData.startTime || 0) }, (_, i) => {
-                  const hour = parseInt(formData.startTime || 0) + i + 1;
-                  if (hour < 24) {
-                    return <option key={hour} value={hour}>{hour}:00</option>;
-                  }
-                  return null;
-                }).filter(Boolean)}
-              </select>
-            </div>
-
-            {/* מספר דירה */}
-            <div>
-              <label className="block mb-1 text-amber-800">
-                מספר דירה
-                <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.apartment}
-                onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
-                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                required
-              >
-                <option value="">בחר דירה</option>
-                {apartmentOptions.map(num => (
-                  <option key={num} value={num}>{num}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* שם מלא */}
-            <div>
-              <label className="block mb-1 text-amber-800">
-                שם מלא
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                required
-              />
-            </div>
-
-            {/* טלפון נייד */}
-            <div>
-              <label className="block mb-1 text-amber-800">
-                טלפון נייד
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                required
-                pattern="05[0-9]{8}"
-                placeholder="05X-XXXXXXX"
-              />
-            </div>
-
-            {/* מטרת השימוש בחדר */}
-            <div>
-              <label className="block mb-1 text-amber-800">
-                מטרת השימוש בחדר
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.purpose}
-                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
-                required
-              />
-            </div>
-
-            {/* תקנון ואישור */}
-            <div className="pt-4 border-t">
-              <div className="text-sm text-amber-800 mb-4">
-                תקנון השימוש בחדר:
-                <div className="mt-2 p-3 bg-amber-50 rounded text-black">
-                  {settings && settings.regulations ? settings.regulations : 'יש לשמור על ניקיון החדר ולהשאירו במצב תקין.'}
-                </div>
-              </div>
-              
-              <label className="flex items-start gap-2 text-amber-800">
-                <input
-                  type="checkbox"
-                  checked={formData.acceptTerms}
-                  onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                  required
-                  className="mt-1 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                />
-                <span className="text-right">
-                  אני מתחייב/ת לפעול לפי תקנון השימוש בחדר
-                  <span className="text-red-500">*</span>
-                </span>
-              </label>
-            </div>
-
-            {/* כפתורי פעולה */}
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
+      <div className="max-h-screen overflow-y-auto py-4 px-4 w-full">
+        <Card className="w-full max-w-md my-8 mx-auto">
+          <CardHeader className="bg-white rounded-t-lg border-b">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-medium text-amber-800">
+                {isEditMode ? 'עריכת הזמנה' : 'הזמנת חדר'}
+              </CardTitle>
+              <button 
                 onClick={onClose}
-                className="flex-1 p-2 rounded border border-amber-300 text-amber-700 hover:bg-amber-50"
+                className="p-2 hover:bg-amber-50 rounded-full transition-colors"
               >
-                ביטול
-              </button>
-              <button
-                type="submit"
-                className="flex-1 p-2 rounded text-white bg-amber-600 hover:bg-amber-700"
-              >
-                {isEditMode ? 'שמור שינויים' : 'אישור הזמנה'}
+                <ChevronRight className="h-5 w-5 text-amber-900" />
               </button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+            <div className="text-sm text-amber-700 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span>{formData.date}</span>
+              {formData.startTime && (
+                <>
+                  <Clock className="h-4 w-4 ml-2" />
+                  <span>{formData.startTime}:00</span>
+                </>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            {/* הודעת הצלחה */}
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md flex items-center gap-2 transition-opacity duration-300">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <span className="font-medium">{successMessage}</span>
+              </div>
+            )}
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* מספר דירה */}
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  מספר דירה
+                  <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.apartment}
+                  onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                >
+                  <option value="">בחר דירה</option>
+                  {apartmentOptions.map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* שדה תאריך */}
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  תאריך
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                />
+              </div>
+
+              {/* שדה שעת התחלה */}
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  שעת התחלה
+                  <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                >
+                  <option value="">בחר שעת התחלה</option>
+                  {Array.from({ length: 24 }, (_, i) => i).map(hour => (
+                    <option key={hour} value={hour}>{hour}:00</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* שדה שעת סיום */}
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  שעת סיום
+                  <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                >
+                  <option value="">בחר שעת סיום</option>
+                  {Array.from({ length: 24 - parseInt(formData.startTime || 0) }, (_, i) => {
+                    const hour = parseInt(formData.startTime || 0) + i + 1;
+                    if (hour < 24) {
+                      return <option key={hour} value={hour}>{hour}:00</option>;
+                    }
+                    return null;
+                  }).filter(Boolean)}
+                </select>
+              </div>
+
+              {/* שם מלא */}
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  שם מלא
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                />
+              </div>
+
+              {/* טלפון נייד */}
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  טלפון נייד (מספרים ברצף ללא מקף)
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                  pattern="05[0-9]{8}"
+                  placeholder="05XXXXXXXX"
+                />
+              </div>
+
+              {/* מטרת השימוש בחדר */}
+              <div>
+                <label className="block mb-1 text-amber-800">
+                  מטרת השימוש בחדר
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.purpose}
+                  onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                  className="w-full p-2 rounded border border-amber-200 bg-white focus:outline-none focus:border-amber-500"
+                  required
+                />
+              </div>
+
+              {/* תקנון ואישור */}
+              <div className="pt-4 border-t">
+                <div className="text-sm text-amber-800 mb-4">
+                  תקנון השימוש בחדר:
+                  <div className="mt-2 p-3 bg-amber-50 rounded text-black">
+                    {settings && settings.regulations ? settings.regulations : 'יש לשמור על ניקיון החדר ולהשאירו במצב תקין.'}
+                  </div>
+                </div>
+                
+                <label className="flex items-start gap-2 text-amber-800">
+                  <input
+                    type="checkbox"
+                    checked={formData.acceptTerms}
+                    onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
+                    required
+                    className="mt-1 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                  />
+                  <span className="text-right">
+                    אני מתחייב/ת לפעול לפי תקנון השימוש בחדר
+                    <span className="text-red-500">*</span>
+                  </span>
+                </label>
+              </div>
+
+              {/* כפתורי פעולה */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 p-2 rounded border border-amber-300 text-amber-700 hover:bg-amber-50"
+                >
+                  ביטול
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 p-2 rounded text-white bg-amber-600 hover:bg-amber-700"
+                >
+                  {isEditMode ? 'שמור שינויים' : 'אישור הזמנה'}
+                </button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
